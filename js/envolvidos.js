@@ -2,6 +2,8 @@
    ENVOLVIDOS - REGISTRO DOS ENVOLVIDOS DO SINISTRO
 --------------------------------------------------------------- */
 
+let ENV_RELATO_RECOGNITION = null;
+
 // Função auxiliar para capitalizar nomes e frases
 function env_capitalize(input) {
   let val = input.value;
@@ -18,6 +20,115 @@ function env_capitalize(input) {
     // Primeira letra de cada palavra (Nomes, Marcas, Ruas)
     input.value = val.toLowerCase().replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
   }
+}
+
+function env_corrigirRelato(texto) {
+  let valor = String(texto || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!valor) return '';
+
+  const correcoes = [
+    [/\bnao\b/gi, 'não'],
+    [/\bveiculo\b/gi, 'veículo'],
+    [/\bveiculos\b/gi, 'veículos'],
+    [/\btransito\b/gi, 'trânsito'],
+    [/\bcolisao\b/gi, 'colisão'],
+    [/\bdinamica\b/gi, 'dinâmica'],
+    [/\brodovia\b/gi, 'rodovia'],
+    [/\bpista\b/gi, 'pista'],
+    [/\bfaixa\b/gi, 'faixa'],
+    [/\bacostamento\b/gi, 'acostamento'],
+    [/\btraseira\b/gi, 'traseira'],
+    [/\bfrente\b/gi, 'frente'],
+    [/\besquerda\b/gi, 'esquerda'],
+    [/\bdireita\b/gi, 'direita']
+  ];
+
+  correcoes.forEach(([pattern, replacement]) => {
+    valor = valor.replace(pattern, replacement);
+  });
+
+  valor = valor
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/([,;:])([^\s])/g, '$1 $2')
+    .replace(/([.!?])([^\s])/g, '$1 $2');
+
+  valor = valor
+    .split(/(?<=[.!?])\s+/)
+    .map((frase) => frase ? frase.charAt(0).toUpperCase() + frase.slice(1) : frase)
+    .join(' ')
+    .trim();
+
+  if (valor && !/[.!?]$/.test(valor)) valor += '.';
+  return valor;
+}
+
+function env_pararVozRelato() {
+  if (!ENV_RELATO_RECOGNITION) return;
+  try {
+    ENV_RELATO_RECOGNITION.stop();
+  } catch (error) {
+    console.warn('Falha ao interromper voz do relato:', error);
+  }
+  ENV_RELATO_RECOGNITION = null;
+}
+
+function env_iniciarVozRelato(btn) {
+  const card = btn?.closest('.person-card');
+  const relato = card?.querySelector('.relato');
+  if (!card || !relato) return;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Reconhecimento de voz nao suportado neste navegador.');
+    return;
+  }
+
+  env_pararVozRelato();
+
+  const recognition = new SpeechRecognition();
+  ENV_RELATO_RECOGNITION = recognition;
+  recognition.lang = 'pt-BR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+  btn.textContent = '🎙️ Ouvindo...';
+
+  recognition.onresult = (event) => {
+    const partes = [];
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      partes.push(event.results[i][0].transcript || '');
+    }
+
+    const textoFalado = partes.join(' ').trim();
+    if (!textoFalado) return;
+
+    if (event.results[event.results.length - 1]?.isFinal) {
+      const textoCorrigido = env_corrigirRelato(textoFalado);
+      relato.value = relato.value
+        ? `${relato.value.trim()} ${textoCorrigido}`.trim()
+        : textoCorrigido;
+      env_capitalize(relato);
+    } else {
+      btn.textContent = '🎙️ Transcrevendo...';
+    }
+  };
+
+  recognition.onerror = (event) => {
+    const erro = event?.error || 'desconhecido';
+    if (erro !== 'no-speech' && erro !== 'aborted') {
+      alert(`Erro no reconhecimento de voz: ${erro}`);
+    }
+  };
+
+  recognition.onend = () => {
+    ENV_RELATO_RECOGNITION = null;
+    btn.textContent = '🎙️ Voz';
+  };
+
+  recognition.start();
 }
 
 function env_adicionar() {
@@ -136,6 +247,16 @@ function env_adicionar() {
       </div>
     </div>
   `;
+
+  const relato = card.querySelector('.relato');
+  if (relato && relato.parentElement) {
+    const voiceWrap = document.createElement('div');
+    voiceWrap.style.display = 'flex';
+    voiceWrap.style.justifyContent = 'flex-end';
+    voiceWrap.style.marginBottom = '6px';
+    voiceWrap.innerHTML = '<button type="button" class="btn btn-sm" data-click="env_iniciarVozRelato(this)">🎙️ Voz</button>';
+    relato.parentElement.insertBefore(voiceWrap, relato);
+  }
 
   lista.appendChild(card);
   if (n > 1) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -328,3 +449,5 @@ function env_copiar() {
 function env_whatsapp() {
   window.open('https://wa.me/?text=' + encodeURIComponent(env_montarTexto()), '_blank');
 }
+
+window.env_iniciarVozRelato = env_iniciarVozRelato;
