@@ -31,12 +31,12 @@ const PAT_QUICK_INFRACOES = {
 
 const PAT_VOICE_TOKEN_MAP = {
   a: 'A', ah: 'A',
-  be: 'B', b: 'B',
-  ce: 'C', c: 'C',
-  de: 'D', d: 'D',
+  be: 'B', b: 'B', bi: 'B',
+  ce: 'C', c: 'C', ci: 'C',
+  de: 'D', d: 'D', di: 'D',
   e: 'E',
   efe: 'F', f: 'F',
-  ge: 'G', g: 'G',
+  ge: 'G', g: 'G', gue: 'G',
   aga: 'H', ha: 'H', h: 'H',
   i: 'I',
   jota: 'J', j: 'J',
@@ -67,6 +67,11 @@ const PAT_VOICE_TOKEN_MAP = {
   oito: '8',
   nove: '9'
 };
+
+const PAT_VOICE_IGNORE_TOKENS = new Set([
+  'placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'nÃºmero',
+  'nova', 'novo', 'de', 'da', 'do', 'tipo', 'formato'
+]);
 
 function pat_escapeHtml(value) {
   return String(value || '')
@@ -244,27 +249,12 @@ function pat_converterFalaEmPlaca(texto) {
 
   const tokens = normalizado
     .split(' ')
-    .filter(token => token && !['placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'número'].includes(token));
+    .filter(token => token && !PAT_VOICE_IGNORE_TOKENS.has(token));
 
   let convertido = '';
 
   tokens.forEach(token => {
-    if (PAT_VOICE_TOKEN_MAP[token]) {
-      convertido += PAT_VOICE_TOKEN_MAP[token];
-      return;
-    }
-
-    if (/^[a-z]$/.test(token)) {
-      convertido += token.toUpperCase();
-      return;
-    }
-
-    if (/^\d$/.test(token)) {
-      convertido += token;
-      return;
-    }
-
-    convertido += token.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    convertido += pat_tokenParaChar(token);
   });
 
   const match = convertido.match(/[A-Z]{3}[0-9][A-Z0-9][0-9]{2}/);
@@ -280,10 +270,12 @@ function pat_validarFormatoPlaca(placa) {
 
 function pat_tokenParaChar(token) {
   if (!token) return '';
+  if (PAT_VOICE_IGNORE_TOKENS.has(token)) return '';
   if (PAT_VOICE_TOKEN_MAP[token]) return PAT_VOICE_TOKEN_MAP[token];
   if (/^[a-z]$/.test(token)) return token.toUpperCase();
   if (/^\d$/.test(token)) return token;
-  if (/^[a-z0-9]{7}$/i.test(token)) return token.toUpperCase();
+  if (/^[a-z0-9]{1,7}$/i.test(token)) return token.toUpperCase();
+  if (/^\d{2,7}$/.test(token)) return token;
   return '';
 }
 
@@ -298,7 +290,6 @@ function pat_extrairPlacasDeLote(texto) {
     for (let j = i + 1; j < tokens.length && valor.length < 7; j++) {
       const token = tokens[j];
       if (token === 'placa' || token === 'terminou') break;
-      if (['mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'número'].includes(token)) continue;
       valor += pat_tokenParaChar(token);
     }
 
@@ -822,3 +813,4 @@ window.pat_limparLotePlacas = pat_limparLotePlacas;
 window.pat_removerPlacaLote = pat_removerPlacaLote;
 
 document.addEventListener('DOMContentLoaded', pat_init);
+
