@@ -69,8 +69,33 @@
     return state.elements;
   }
 
+  const BROKEN_TEXT_MAP = {
+    '\u00DD': 'í',
+    '\u00FE': 'ç',
+    '\u00D2': 'ã',
+    '\u00DF': 'á',
+    '\u00DA': 'é',
+    '\u00DB': 'ê',
+    '\u00D3': 'à',
+    '\u00D4': 'â',
+    '\u00B7': 'ú',
+    '\u00BE': 'ó',
+    '\u00A7': 'õ',
+    '\u00BA': '§',
+    '\u2551': 'º',
+    '\u00B1': 'não',
+    '\u00FB': '-',
+    '\u2554': 'É',
+    '\u00B6': 'ô',
+    '\u00B3': 'u',
+    '\u00D0': 'Não'
+  };
+
   function repairBrokenText(text) {
-    return String(text || '').trim();
+    return String(text || '')
+      .replace(/[\u00DD\u00FE\u00D2\u00DF\u00DA\u00DB\u00D3\u00D4\u00B7\u00BE\u00A7\u00BA\u2551\u00B1\u00FB\u2554\u00B6\u00B3\u00D0]/g, char => BROKEN_TEXT_MAP[char] || char)
+      .replace(/\s+-\s+/g, ' - ')
+      .trim();
   }
 
   function safeText(value) {
