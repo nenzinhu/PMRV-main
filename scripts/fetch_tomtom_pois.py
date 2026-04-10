@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TOMTOM_KEY = '3g2ZOIEsJUN2VTkHi6dYW8PuV4kiBTUu'
+TOMTOM_KEY = '019d7351-9914-7693-912e-c792ef6beb88'
 GPS_DATA_PATH = ROOT / "data" / "gps_data_sc.json"
 REFS_JSON_PATH = ROOT / "data" / "referencias_grande_florianopolis_150m.json"
 
