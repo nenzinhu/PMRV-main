@@ -1,0 +1,9 @@
+.aider*
+.gemini/
+.venv/
+__pycache__/
+*.pyc
+*.log
+server.err.log
+server.out.log
+PMRV-main.zip
