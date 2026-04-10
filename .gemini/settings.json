@@ -1,0 +1,9 @@
+{
+  "agents": {
+    "overrides": {
+      "codebase_investigator": {
+        "enabled": false
+      }
+    }
+  }
+}
