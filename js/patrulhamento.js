@@ -6,6 +6,7 @@
 let patRelogioHandle = null;
 let PAT_SPEECH_RECOGNITION = null;
 const PAT_GPS_STATUS_LABEL = 'Sintonizando...';
+const PAT_LOTE_MAX_PLACAS = 20;
 let PAT_LOTE_PLACAS = [];
 let PAT_LOTE_SEEN = new Set();
 
@@ -38,13 +39,13 @@ const PAT_VOICE_TOKEN_MAP = {
   efe: 'F', f: 'F',
   ge: 'G', g: 'G', gue: 'G',
   aga: 'H', ha: 'H', h: 'H',
-  i: 'I',
+  i: 'I', ih: 'I',
   jota: 'J', j: 'J',
   ka: 'K', ca: 'K', k: 'K',
   ele: 'L', l: 'L',
   eme: 'M', m: 'M',
   ene: 'N', n: 'N',
-  o: 'O',
+  o: 'O', oh: 'O',
   pe: 'P', p: 'P',
   que: 'Q', q: 'Q',
   erre: 'R', r: 'R',
@@ -61,6 +62,7 @@ const PAT_VOICE_TOKEN_MAP = {
   dois: '2',
   tres: '3',
   quatro: '4',
+  for: '4',
   cinco: '5',
   seis: '6', meia: '6',
   sete: '7',
@@ -268,6 +270,27 @@ function pat_validarFormatoPlaca(placa) {
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(String(placa || '').toUpperCase());
 }
 
+function pat_normalizarPossivelPlaca(placa) {
+  return String(placa || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 7);
+}
+
+function pat_placaEhParecida(a, b) {
+  const left = pat_normalizarPossivelPlaca(a);
+  const right = pat_normalizarPossivelPlaca(b);
+  if (!left || !right || left.length !== 7 || right.length !== 7) return false;
+  if (left === right) return true;
+
+  let diff = 0;
+  for (let i = 0; i < 7; i++) {
+    if (left[i] !== right[i]) diff++;
+    if (diff > 1) return false;
+  }
+  return diff <= 1;
+}
+
 function pat_tokenParaChar(token) {
   if (!token) return '';
   if (PAT_VOICE_IGNORE_TOKENS.has(token)) return '';
@@ -309,19 +332,22 @@ function pat_renderizarLotePlacas() {
   box.classList.toggle('hidden', PAT_LOTE_PLACAS.length === 0);
   if (!PAT_LOTE_PLACAS.length) {
     lista.innerHTML = '';
-    status.textContent = 'Diga `placa` e os 7 caracteres. Diga `terminou` para encerrar.';
+    status.textContent = `Diga "placa" e os 7 caracteres. Diga "terminou" para encerrar. Maximo: ${PAT_LOTE_MAX_PLACAS} placas.`;
     return;
   }
 
-  status.textContent = `Lote capturado: ${PAT_LOTE_PLACAS.length} placa(s).`;
+  status.textContent = `Lote capturado: ${PAT_LOTE_PLACAS.length}/${PAT_LOTE_MAX_PLACAS} placa(s).`;
   lista.innerHTML = PAT_LOTE_PLACAS.map((placa) =>
     `<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(37,99,235,.08);font-family:monospace;font-weight:700;">${pat_escapeHtml(placa)} <button type="button" class="btn btn-sm" style="padding:2px 8px;min-height:auto;" data-click="pat_removerPlacaLote('${placa}')">x</button></span>`
   ).join('');
 }
 
 function pat_adicionarPlacaNoLote(placa) {
-  const valor = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
-  if (!pat_validarFormatoPlaca(valor) || PAT_LOTE_SEEN.has(valor)) return false;
+  const valor = pat_normalizarPossivelPlaca(placa);
+  if (!pat_validarFormatoPlaca(valor)) return false;
+  if (PAT_LOTE_PLACAS.length >= PAT_LOTE_MAX_PLACAS) return false;
+  if (PAT_LOTE_SEEN.has(valor)) return false;
+  if (PAT_LOTE_PLACAS.some((item) => pat_placaEhParecida(item, valor))) return false;
   PAT_LOTE_SEEN.add(valor);
   PAT_LOTE_PLACAS.push(valor);
   pat_renderizarLotePlacas();
@@ -463,7 +489,15 @@ function pat_iniciarVozLotePlacas() {
 
     const status = document.getElementById('pat_lote_status');
     if (status && !normalizado.includes('terminou')) {
-      status.textContent = `Ouvindo lote... ${PAT_LOTE_PLACAS.length} placa(s) reconhecida(s).`;
+      status.textContent = `Ouvindo lote... ${PAT_LOTE_PLACAS.length}/${PAT_LOTE_MAX_PLACAS} placa(s) reconhecida(s).`;
+    }
+
+    if (PAT_LOTE_PLACAS.length >= PAT_LOTE_MAX_PLACAS) {
+      if (status) status.textContent = `Limite maximo atingido: ${PAT_LOTE_MAX_PLACAS} placas.`;
+      pat_pararReconhecimentoVoz();
+      pat_setBotaoLote('idle', '🎙️ Lote');
+      pat_renderizarLotePlacas();
+      return;
     }
 
     if (normalizado.includes('terminou')) {
