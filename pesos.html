@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de PBT - PMRv SC</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --amber: #f59e0b;
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: var(--card);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .brand-logo {
+            width: 60px;
+            margin-bottom: 10px;
+        }
+
+        h1 { margin: 0; font-size: 20px; color: var(--primary); font-weight: 900; }
+        p { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.5px; }
+
+        select, input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--primary);
+            outline: none;
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .result-panel {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .res-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .res-row:last-child { margin-bottom: 0; }
+        .res-label { font-size: 13px; color: var(--muted); }
+        .res-val { font-size: 16px; font-weight: 800; font-family: monospace; }
+
+        .status-badge {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .status-badge.legal { background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success); }
+        .status-badge.excesso { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); }
+
+        .infracao-box {
+            margin-top: 15px;
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px dashed var(--amber);
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 12px;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .copy-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 20px;
+        }
+
+        .hidden { display: none; }
+        .mt-8 { margin-top: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <img src="img/extracted_1.png" alt="PMRv" class="brand-logo">
+        <h1>CALCULADORA DE PBT</h1>
+        <p>Fiscalização por Nota Fiscal (Res. Contran)</p>
+    </header>
+
+    <div class="form-group">
+        <label>Configuração do Veículo</label>
+        <select id="config" onchange="calcular()">
+            <optgroup label="Caminhão Simples">
+                <option value="16000">🚚 2 Eixos (Toco) - 16t</option>
+                <option value="23000">🚚 3 Eixos (Truck) - 23t</option>
+                <option value="29000">🚚 4 Eixos (Bitruck) - 29t</option>
+            </optgroup>
+            <optgroup label="Caminhão Trator + Semirreboque">
+                <option value="33000">🚛 3 Eixos (Cavalo Simples + 1) - 33t</option>
+                <option value="41500">🚛 4 Eixos (Cavalo Simples + 2) - 41.5t</option>
+                <option value="48500">🚛 5 Eixos (Cavalo Truck + 2 ou Simples + 3) - 48.5t</option>
+                <option value="53000">🚛 6 Eixos (Cavalo Truck + 3) - 53t</option>
+            </optgroup>
+            <optgroup label="Combinações (CVC)">
+                <option value="57000">🚛 7 Eixos (Bitrem) - 57t</option>
+                <option value="74000">🚛 9 Eixos (Rodotrem) - 74t</option>
+            </optgroup>
+            <option value="MANUAL">✏️ Outro limite (Manual)</option>
+        </select>
+        <input type="number" id="manual_limite" class="hidden mt-8" placeholder="Limite em KG" oninput="calcular()">
+    </div>
+
+    <div class="grid-2">
+        <div class="form-group">
+            <label>Tara (KG)</label>
+            <input type="number" id="tara" placeholder="0" oninput="calcular()">
+        </div>
+        <div class="form-group">
+            <label>Peso NF (KG)</label>
+            <input type="number" id="carga" placeholder="0" oninput="calcular()">
+        </div>
+    </div>
+
+    <div class="result-panel">
+        <div class="res-row">
+            <span class="res-label">PBT Apurado:</span>
+            <span class="res-val" id="res_apurado" style="color: #fff;">0 kg</span>
+        </div>
+        <div class="res-row">
+            <span class="res-label">Limite Legal:</span>
+            <span class="res-val" id="res_limite">0 kg</span>
+        </div>
+        <div class="res-row" style="color: var(--primary);">
+            <span class="res-label">Limite c/ Tolerância (5%):</span>
+            <span class="res-val" id="res_tolerancia">0 kg</span>
+        </div>
+    </div>
+
+    <div id="status_badge" class="status-badge">
+        <div id="status_icon" style="font-size: 24px;"></div>
+        <div id="status_titulo" style="font-weight: 900; font-size: 16px;"></div>
+        <div id="status_desc" style="font-size: 11px; margin-top: 4px;"></div>
+    </div>
+
+    <div id="infracao_area" class="infracao-box">
+        <strong style="color: var(--amber);">📑 ENQUADRAMENTO SUGERIDO:</strong>
+        <pre id="infracao_text" style="white-space: pre-wrap; margin: 10px 0 0; font-family: inherit; font-size: 11px; color: #fff;"></pre>
+        <button class="copy-btn" onclick="copiar()">📋 Copiar Dados</button>
+    </div>
+
+    <div class="footer-note">
+        Polícia Militar Rodoviária de Santa Catarina<br>
+        Ferramenta de Apoio Operacional
+    </div>
+</div>
+
+<script>
+    function calcular() {
+        const configSel = document.getElementById('config');
+        const manualInp = document.getElementById('manual_limite');
+        const taraInp = document.getElementById('tara');
+        const cargaInp = document.getElementById('carga');
+
+        if (configSel.value === 'MANUAL') {
+            manualInp.classList.remove('hidden');
+        } else {
+            manualInp.classList.add('hidden');
+        }
+
+        let limiteLegal = configSel.value === 'MANUAL' ? parseFloat(manualInp.value || 0) : parseFloat(configSel.value);
+        let tara = parseFloat(taraInp.value || 0);
+        let carga = parseFloat(cargaInp.value || 0);
+
+        let apurado = tara + carga;
+        let tolerancia = Math.floor(limiteLegal * 0.05);
+        let limiteMax = limiteLegal + tolerancia;
+        let excesso = apurado - limiteLegal;
+        let excessoTolerancia = apurado - limiteMax;
+
+        document.getElementById('res_apurado').innerText = apurado.toLocaleString('pt-BR') + " kg";
+        document.getElementById('res_limite').innerText = limiteLegal.toLocaleString('pt-BR') + " kg";
+        document.getElementById('res_tolerancia').innerText = limiteMax.toLocaleString('pt-BR') + " kg";
+
+        const badge = document.getElementById('status_badge');
+        const infrArea = document.getElementById('infracao_area');
+
+        if (apurado <= 0) {
+            badge.style.display = 'none';
+            infrArea.style.display = 'none';
+            return;
+        }
+
+        badge.style.display = 'block';
+
+        if (apurado <= limiteMax) {
+            badge.className = 'status-badge legal';
+            document.getElementById('status_icon').innerText = "✅";
+            document.getElementById('status_titulo').innerText = "DENTRO DO LIMITE";
+            document.getElementById('status_desc').innerText = excesso > 0 ? 
+                `Excesso de ${excesso}kg (dentro dos 5%)` : "Peso em conformidade.";
+            infrArea.style.display = 'none';
+        } else {
+            badge.className = 'status-badge excesso';
+            document.getElementById('status_icon').innerText = "⚖️";
+            document.getElementById('status_titulo').innerText = "EXCESSO DETECTADO!";
+            document.getElementById('status_desc').innerHTML = `Excesso Total: <strong>${excesso.toLocaleString('pt-BR')} kg</strong><br>Acima da Tolerância: <strong>${excessoTolerancia.toLocaleString('pt-BR')} kg</strong>`;
+            
+            infrArea.style.display = 'block';
+            montarInfracao(limiteLegal, apurado, excesso);
+        }
+    }
+
+    function montarInfracao(limite, apurado, excesso) {
+        let txt = `*INFRAÇÃO: EXCESSO DE PESO (PBT)*\n`;
+        txt += `Código: 682-31 | Art. 231, V\n`;
+        txt += `─────────────────────\n`;
+        txt += `Limite Legal: ${limite.toLocaleString('pt-BR')} kg\n`;
+        txt += `Peso Apurado: ${apurado.toLocaleString('pt-BR')} kg\n`;
+        txt += `Excesso Constatado: ${excesso.toLocaleString('pt-BR')} kg\n`;
+        txt += `─────────────────────\n`;
+        txt += `Medida: Retenção para transbordo.`;
+        document.getElementById('infracao_text').innerText = txt;
+    }
+
+    function copiar() {
+        const text = document.getElementById('infracao_text').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('.copy-btn');
+            btn.innerText = "✅ Copiado!";
+            setTimeout(() => btn.innerText = "📋 Copiar Dados", 2000);
+        });
+    }
+</script>
+
+</body>
+</html>
