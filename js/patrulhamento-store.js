@@ -8,6 +8,16 @@ PMRV.patrulhamentoStore = (function() {
     return Array.isArray(value) ? value : [];
   }
 
+  function isValidEntry(entry) {
+    return entry !== null
+      && typeof entry === 'object'
+      && typeof entry.placa === 'string'
+      && entry.infracao !== null
+      && typeof entry.infracao === 'object'
+      && typeof entry.infracao.nome === 'string'
+      && typeof entry.hora === 'string';
+  }
+
   function persist() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(veiculos));
   }
@@ -20,7 +30,12 @@ PMRV.patrulhamentoStore = (function() {
     }
 
     try {
-      veiculos = sanitizeList(JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      veiculos = sanitizeList(parsed).filter(isValidEntry);
+      const total = sanitizeList(parsed).length;
+      if (veiculos.length < total) {
+        console.warn(`[PatStore] ${total - veiculos.length} entradas inválidas descartadas do cache.`);
+      }
     } catch (error) {
       console.error('Erro ao carregar cache de patrulhamento', error);
       veiculos = [];

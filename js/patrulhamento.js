@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Modulo: Patrulhamento de Transito SC
  * Registro rapido de infracoes em lote com persistencia local.
  */
@@ -168,10 +168,10 @@ async function pat_simularOCR(input) {
       pat_setModoPlaca('manual');
       if (navigator.vibrate) navigator.vibrate(100);
     } else {
-      alert('Nao foi possivel identificar a placa com clareza.');
+      PMRV.modal.alert('Nao foi possivel identificar a placa com clareza.');
     }
   } catch (err) {
-    alert('Erro no OCR: ' + err.message);
+    PMRV.modal.alert('Erro no OCR: ' + err.message);
   } finally {
     if (label && typeof originalText === 'string') {
       label.innerHTML = originalText;
@@ -282,7 +282,7 @@ function pat_aplicarPlacaReconhecida(placa) {
 function pat_iniciarVozPlaca() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert('Reconhecimento de voz nao suportado neste navegador.');
+    PMRV.modal.alert('Reconhecimento de voz nao suportado neste navegador.');
     return;
   }
 
@@ -316,7 +316,7 @@ function pat_iniciarVozPlaca() {
 
     if (event.results[event.results.length - 1]?.isFinal) {
       if (!pat_aplicarPlacaReconhecida(placaConvertida)) {
-        alert(`Nao foi possivel montar a placa com clareza.\n\nReconhecido: ${textoFalado || '---'}`);
+        PMRV.modal.alert(`Nao foi possivel montar a placa com clareza.\n\nReconhecido: ${textoFalado || '---'}`);
       }
     } else {
       const btn = document.getElementById('btn-pat-placa-voz');
@@ -329,7 +329,7 @@ function pat_iniciarVozPlaca() {
   recognition.onerror = (event) => {
     const erro = event?.error || 'desconhecido';
     if (erro !== 'no-speech' && erro !== 'aborted') {
-      alert(`Erro no reconhecimento de voz: ${erro}`);
+      PMRV.modal.alert(`Erro no reconhecimento de voz: ${erro}`);
     }
   };
 
@@ -415,7 +415,7 @@ function pat_salvarVeiculo() {
   }
 
   if (!placa || placa.length < 7) {
-    alert('Placa invalida.');
+    PMRV.modal.alert('Placa invalida.');
     return;
   }
 
@@ -424,7 +424,7 @@ function pat_salvarVeiculo() {
     try {
       infracaoObj = JSON.parse(infracaoDataInput.value);
     } catch (err) {
-      alert('Dados da infracao invalidos. Selecione novamente.');
+      PMRV.modal.alert('Dados da infracao invalidos. Selecione novamente.');
       return;
     }
   } else {
@@ -436,7 +436,7 @@ function pat_salvarVeiculo() {
   }
 
   if (!infracaoObj) {
-    alert('Selecione a infracao.');
+    PMRV.modal.alert('Selecione a infracao.');
     return;
   }
 
@@ -495,8 +495,8 @@ function pat_renderizarLista() {
   });
 }
 
-function pat_removerVeiculo(index) {
-  if (!confirm('Remover este registro?')) return;
+async function pat_removerVeiculo(index) {
+  if (!await PMRV.modal.confirm('Remover este registro?')) return;
   pat_getStore()?.removeAt?.(index);
   pat_renderizarLista();
   if (pat_getVeiculos().length === 0) {
@@ -504,8 +504,8 @@ function pat_removerVeiculo(index) {
   }
 }
 
-function pat_limparTudo() {
-  if (!confirm('Apagar todo o lote?')) return;
+async function pat_limparTudo() {
+  if (!await PMRV.modal.confirm('Apagar todo o lote?')) return;
   pat_getStore()?.clear?.();
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', false);
@@ -524,7 +524,7 @@ function pat_gerarRelatorio() {
 
 function pat_encerrarPatrulhamento() {
   if (pat_getVeiculos().length === 0) {
-    alert('Nenhum registro foi adicionado ao patrulhamento.');
+    PMRV.modal.alert('Nenhum registro foi adicionado ao patrulhamento.');
     return;
   }
 
@@ -537,7 +537,7 @@ function pat_baixarTxt() {
   const texto = resultText?.innerText?.trim();
 
   if (!texto) {
-    alert('Finalize o patrulhamento antes de gerar o TXT.');
+    PMRV.modal.alert('Finalize o patrulhamento antes de gerar o TXT.');
     return;
   }
 
@@ -579,7 +579,7 @@ function pat_obterGPS() {
   if (!localInput) return;
   if (!navigator.geolocation) {
     localInput.value = 'GPS nao suportado';
-    alert('GPS nao suportado neste dispositivo.');
+    PMRV.modal.alert('GPS nao suportado neste dispositivo.');
     return;
   }
 
@@ -597,7 +597,7 @@ function pat_obterGPS() {
     },
     err => {
       localInput.value = 'GPS nao obtido';
-      alert('Erro GPS: ' + err.message);
+      PMRV.modal.alert('Erro GPS: ' + err.message);
     },
     { enableHighAccuracy: true, timeout: 5000 }
   );

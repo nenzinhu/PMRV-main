@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Modulo: Referencias de Rodovias
  * Base operacional da Grande Florianopolis gerada a cada 200 m.
  */
@@ -98,13 +98,13 @@ async function ref_localizar() {
     const kmVal = parseFloat(rawVal);
 
     if (isNaN(kmVal)) {
-        alert('Por favor, digite um KM valido.');
+        PMRV.modal.alert('Por favor, digite um KM valido.');
         return;
     }
 
     const rodData = RODOVIAS_REF_DATA[rodKey];
     if (!rodData) {
-        alert('Dados desta rodovia ainda nao cadastrados.');
+        PMRV.modal.alert('Dados desta rodovia ainda nao cadastrados.');
         return;
     }
 

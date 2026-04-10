@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Modulo: Referencias Proximas via TomTom Along Route Search + Marcos 150m
  */
 
@@ -38,12 +38,12 @@
     const btnBusca = document.getElementById('btn-ref-prox-buscar');
 
     if (!rodovia) {
-      alert('Selecione uma rodovia primeiro.');
+      PMRV.modal.alert('Selecione uma rodovia primeiro.');
       return;
     }
 
     if (selectedCategories.length === 0) {
-      alert('Selecione pelo menos uma categoria.');
+      PMRV.modal.alert('Selecione pelo menos uma categoria.');
       return;
     }
 

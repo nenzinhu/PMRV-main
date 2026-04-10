@@ -1,4 +1,4 @@
-/* ---------------------------------------------------------------
+﻿/* ---------------------------------------------------------------
    INICIANDO O SERVICO - COMPATIVEL COM O HTML ATUAL
 --------------------------------------------------------------- */
 window.PMRV = window.PMRV || {};
@@ -314,17 +314,17 @@ PMRV.assuncao = (function() {
     const horario = byId('ass_build_horario')?.value || '';
 
     if (!state.mesa && !vtr) {
-      alert('Por favor, selecione ou informe a viatura.');
+      PMRV.modal.alert('Por favor, selecione ou informe a viatura.');
       return;
     }
 
     if (!state.mesa && !tipo) {
-      alert('Por favor, selecione ou informe a escala.');
+      PMRV.modal.alert('Por favor, selecione ou informe a escala.');
       return;
     }
 
     if (!state.policiaisSelecionados.length) {
-      alert('Selecione ao menos um policial para esta guarnição.');
+      PMRV.modal.alert('Selecione ao menos um policial para esta guarnição.');
       return;
     }
 

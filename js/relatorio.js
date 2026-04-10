@@ -9,9 +9,10 @@ function relFull_gerarTexto() {
   txt += '━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
 
   // ── 🚔 PATRULHAMENTO (Lote de Infrações) ───────────────────
-  if (typeof PAT_VEICULOS !== 'undefined' && PAT_VEICULOS.length > 0) {
+  const _patVeiculos = (window.PMRV?.patrulhamentoStore?.getAll?.() || []);
+  if (_patVeiculos.length > 0) {
     txt += '\n🚔 *INFRAÇÕES EM LOTE (PATRULHAMENTO)*\n';
-    PAT_VEICULOS.forEach((v, i) => {
+    _patVeiculos.forEach((v, i) => {
       txt += `${i+1}. [${v.placa}] - ${v.infracao.nome} (${v.hora})\n`;
     });
     txt += '──────────────────────────\n';
@@ -35,9 +36,10 @@ function relFull_gerarTexto() {
   }
 
   // ── 🚗 DANOS APARENTES ──────────────────────────────────────
-  if (typeof danVeiculosSalvos !== 'undefined' && danVeiculosSalvos.length > 0) {
+  const _danVeiculosSalvos = window.PMRV?.danosRuntime?.veiculosSalvos || [];
+  if (_danVeiculosSalvos.length > 0) {
     txt += '\n🚗 *DANOS APARENTES*\n';
-    danVeiculosSalvos.forEach(function(v, idx) {
+    _danVeiculosSalvos.forEach(function(v, idx) {
       txt += `\n*V${idx+1} (${v.tipo.toUpperCase()}):* `;
       let danosArr = [];
       if (v.tipo === 'moto' && v.v360db) {

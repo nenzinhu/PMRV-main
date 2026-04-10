@@ -21,19 +21,19 @@ This repositório contém a versão melhorada do projeto **PMRV 4 em 1**, uma 
 2. Se desejar extrair imagens base64 embutidas no `index.html`, execute:
 
 ```sh
-python extract_base64_images.py index.html img
+python scripts/extract_base64_images.py index.html img
 ```
 
 3. Para extrair estilos inline para o diretório `css/`, execute:
 
 ```sh
-python extract_inline_css.py index.html
+python scripts/extract_inline_css.py index.html
 ```
 
 4. Para adicionar suporte PWA (manifesto e service worker) ao arquivo `index.html`:
 
 ```sh
-python add_pwa_support.py index.html
+python scripts/add_pwa_support.py index.html
 ```
 
 Certifique‑se de que `manifest.json` e `service_worker.js` estejam presentes na raiz.
@@ -48,7 +48,7 @@ Faça um backup do seu `index.html` antes de rodar esse patch.
 
 ## Manual
 
-O manual funcional do aplicativo esta em [MANUAL_DE_USO.md](C:\Users\Nei\Desktop\Projetos\PMRV-4em1-main\MANUAL_DE_USO.md).
+O manual funcional do aplicativo esta em [MANUAL_DE_USO.md](./MANUAL_DE_USO.md).
 
 ## Sobre
 

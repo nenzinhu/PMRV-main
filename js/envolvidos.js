@@ -2,6 +2,91 @@
    ENVOLVIDOS - REGISTRO DOS ENVOLVIDOS DO SINISTRO
 --------------------------------------------------------------- */
 
+/* ── Persistência de fotos via IndexedDB ── */
+const ENV_FOTOS_DB = (function () {
+  const DB = 'PMRV_Data';
+  const STORE = 'env_fotos';
+  let _db = null;
+
+  function _open() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((res, rej) => {
+      // Abre em versão maior para criar a store se ainda não existir
+      const req = indexedDB.open(DB, 2);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE);
+        }
+      };
+      req.onsuccess = e => { _db = e.target.result; res(_db); };
+      req.onerror = e => rej(e.target.error);
+    });
+  }
+
+  async function salvar(cardId, fotos) {
+    try {
+      const db = await _open();
+      await new Promise((res, rej) => {
+        const tx = db.transaction([STORE], 'readwrite');
+        const st = tx.objectStore(STORE);
+        const r = st.put(fotos, cardId);
+        r.onsuccess = () => res();
+        r.onerror = () => rej(r.error);
+      });
+    } catch (e) {
+      console.warn('[EnvFotos] Erro ao salvar fotos:', e);
+    }
+  }
+
+  async function carregar(cardId) {
+    try {
+      const db = await _open();
+      return await new Promise((res, rej) => {
+        const tx = db.transaction([STORE], 'readonly');
+        const st = tx.objectStore(STORE);
+        const r = st.get(cardId);
+        r.onsuccess = () => res(r.result || []);
+        r.onerror = () => rej(r.error);
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function remover(cardId) {
+    try {
+      const db = await _open();
+      await new Promise((res, rej) => {
+        const tx = db.transaction([STORE], 'readwrite');
+        const st = tx.objectStore(STORE);
+        const r = st.delete(cardId);
+        r.onsuccess = () => res();
+        r.onerror = () => rej(r.error);
+      });
+    } catch (e) {
+      console.warn('[EnvFotos] Erro ao remover fotos:', e);
+    }
+  }
+
+  async function listarChaves() {
+    try {
+      const db = await _open();
+      return await new Promise((res, rej) => {
+        const tx = db.transaction([STORE], 'readonly');
+        const st = tx.objectStore(STORE);
+        const r = st.getAllKeys();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror = () => rej(r.error);
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  return { salvar, carregar, remover, listarChaves };
+})();
+
 // Função auxiliar para capitalizar nomes e frases
 function env_capitalize(input) {
   let val = input.value;
@@ -23,9 +108,11 @@ function env_capitalize(input) {
 function env_adicionar() {
   const lista = document.getElementById('env_lista');
   const n = lista.querySelectorAll('.person-card').length + 1;
+  const cardId = 'env_card_' + Date.now();
 
   const card = document.createElement('div');
   card.className = 'person-card';
+  card.dataset.envId = cardId;
   card.innerHTML = `
     <div class="person-card-header">
       <span class="person-card-title">Envolvido ${n}</span>
@@ -138,11 +225,15 @@ function env_adicionar() {
   `;
 
   lista.appendChild(card);
+  env_restaurarFotos(card);  // recarrega fotos persistidas se existirem
   if (n > 1) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function env_removerCard(btn) {
-  btn.closest('.person-card').remove();
+  const card = btn.closest('.person-card');
+  const cardId = card.dataset.envId;
+  if (cardId) ENV_FOTOS_DB.remover(cardId);
+  card.remove();
   env_renumerar();
 }
 
@@ -154,6 +245,7 @@ function env_renumerar() {
 
 function env_miniatura(input) {
   const card = input.closest('.person-card');
+  const cardId = card.dataset.envId;
   const container = card.querySelector('.foto-grid');
   const actions = card.querySelector('.foto-actions');
   if (input.files) {
@@ -172,15 +264,53 @@ function env_miniatura(input) {
           ev.stopPropagation();
           wrap.remove();
           if (!container.querySelectorAll('.foto-wrap').length) actions.style.display = 'none';
+          env_persistirFotos(card);
         };
         wrap.appendChild(img);
         wrap.appendChild(del);
         container.appendChild(wrap);
         actions.style.display = 'flex';
+        env_persistirFotos(card);
       };
       r.readAsDataURL(arquivo);
     });
   }
+}
+
+function env_persistirFotos(card) {
+  const cardId = card.dataset.envId;
+  if (!cardId) return;
+  const srcs = Array.from(card.querySelectorAll('.foto-grid img')).map(i => i.src);
+  ENV_FOTOS_DB.salvar(cardId, srcs);
+}
+
+async function env_restaurarFotos(card) {
+  const cardId = card.dataset.envId;
+  if (!cardId) return;
+  const fotos = await ENV_FOTOS_DB.carregar(cardId);
+  if (!fotos || !fotos.length) return;
+  const container = card.querySelector('.foto-grid');
+  const actions = card.querySelector('.foto-actions');
+  fotos.forEach(src => {
+    const wrap = document.createElement('div');
+    wrap.className = 'foto-wrap';
+    const img = document.createElement('img');
+    img.src = src;
+    img.onclick = () => env_abrirGaleria(card);
+    const del = document.createElement('button');
+    del.className = 'foto-del';
+    del.innerHTML = '✕';
+    del.onclick = (ev) => {
+      ev.stopPropagation();
+      wrap.remove();
+      if (!container.querySelectorAll('.foto-wrap').length) actions.style.display = 'none';
+      env_persistirFotos(card);
+    };
+    wrap.appendChild(img);
+    wrap.appendChild(del);
+    container.appendChild(wrap);
+  });
+  actions.style.display = 'flex';
 }
 
 function env_abrirGaleria(card) {
@@ -272,6 +402,8 @@ function env_compartilharFotos(btn) {
 
 function env_limparFotos(btn) {
   const card = btn.closest('.person-card');
+  const cardId = card.dataset.envId;
+  if (cardId) ENV_FOTOS_DB.remover(cardId);
   card.querySelector('.foto-grid').innerHTML = '';
   btn.closest('.foto-actions').style.display = 'none';
 }

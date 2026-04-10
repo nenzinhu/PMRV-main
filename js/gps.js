@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Logica de GPS para identificacao de rodovia/KM e descricao legivel do local.
  * Quando nao houver rodovia mapeada, tenta obter endereco aproximado por reverse geocoding.
  */
@@ -14,7 +14,8 @@ const GPS_REVERSE_CACHE = new Map();
 const GPS_MONITOR_STATE = {
     watchId: null,
     activeScreen: 'home',
-    unsupportedLogged: false
+    unsupportedLogged: false,
+    lastNominatimCall: 0
 };
 
 const GPS_RODOVIA_ALIASES = {
@@ -85,6 +86,13 @@ async function gps_resolverEndereco(latitude, longitude) {
     if (GPS_REVERSE_CACHE.has(cacheKey)) {
         return GPS_REVERSE_CACHE.get(cacheKey);
     }
+
+    // Throttle: respeita política de uso do Nominatim (máx. 1 req/s, buffer de 8s no monitor)
+    const agora = Date.now();
+    if (agora - GPS_MONITOR_STATE.lastNominatimCall < 8000) {
+        return GPS_REVERSE_CACHE.get(cacheKey) || 'Endereco aproximado indisponivel';
+    }
+    GPS_MONITOR_STATE.lastNominatimCall = agora;
 
     try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=18&addressdetails=1&accept-language=pt-BR`;
@@ -236,7 +244,7 @@ async function gps_descreverLocal(latitude, longitude) {
 
 function gps_obterLocalizacao() {
     if (!navigator.geolocation) {
-        alert('GPS nao suportado pelo seu dispositivo.');
+        PMRV.modal.alert('GPS nao suportado pelo seu dispositivo.');
         return;
     }
 
@@ -317,7 +325,7 @@ function gps_obterLocalizacao() {
             });
             gps_atualizarHeaderLocal(resultado.localPrincipal || resultado.descricao);
 
-            alert(`📍 Localizacao identificada!\n\n${resultado.descricao}\n\nPrecisao: ${accuracy.toFixed(0)} metros.`);
+            PMRV.modal.alert(`📍 Localizacao identificada!\n\n${resultado.descricao}\n\nPrecisao: ${accuracy.toFixed(0)} metros.`);
 
             if (activeBtn) {
                 activeBtn.innerHTML = originalText;
@@ -337,7 +345,7 @@ function gps_obterLocalizacao() {
                 mensagem: msg
             });
             gps_atualizarHeaderLocal('GPS indisponivel');
-            alert(msg);
+            PMRV.modal.alert(msg);
 
             if (activeBtn) {
                 activeBtn.innerHTML = originalText;
@@ -508,7 +516,7 @@ function gps_simularLocalizacao() {
             mensagem: ponto.msg
         });
         gps_atualizarHeaderLocal(descricao);
-        alert(`MODO TESTE\n\n${ponto.msg}\n\n${descricao}`);
+        PMRV.modal.alert(`MODO TESTE\n\n${ponto.msg}\n\n${descricao}`);
     } else {
         gps_setResultado({
             accuracy: 0,
@@ -518,7 +526,7 @@ function gps_simularLocalizacao() {
             mensagem: 'Nenhuma rodovia identificada para o ponto de teste.'
         });
         gps_atualizarHeaderLocal('Endereco aproximado indisponivel no modo teste.');
-        alert('MODO TESTE\n\nNenhuma rodovia identificada para os pontos de teste.');
+        PMRV.modal.alert('MODO TESTE\n\nNenhuma rodovia identificada para os pontos de teste.');
     }
 }
 

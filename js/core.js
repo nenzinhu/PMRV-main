@@ -3,6 +3,94 @@
 --------------------------------------------------------------- */
 window.PMRV = window.PMRV || {};
 
+/* ---------------------------------------------------------------
+   PMRV.modal — Substitui alert() e confirm() nativos
+--------------------------------------------------------------- */
+PMRV.modal = (function () {
+  function _buildOverlay() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:99999',
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'background:rgba(0,0,0,0.55)', 'padding:16px'
+    ].join(';');
+    return overlay;
+  }
+
+  function _buildBox(titulo, msg) {
+    const box = document.createElement('div');
+    box.style.cssText = [
+      'background:#1e2533', 'border-radius:12px', 'padding:24px 20px',
+      'max-width:360px', 'width:100%', 'box-shadow:0 8px 32px rgba(0,0,0,0.5)',
+      'color:#e8eaf0', 'font-family:Inter,system-ui,sans-serif'
+    ].join(';');
+
+    if (titulo) {
+      const h = document.createElement('div');
+      h.style.cssText = 'font-weight:700;font-size:1rem;margin-bottom:10px;color:#fff';
+      h.textContent = titulo;
+      box.appendChild(h);
+    }
+
+    const p = document.createElement('div');
+    p.style.cssText = 'font-size:0.92rem;line-height:1.5;white-space:pre-line;margin-bottom:20px';
+    p.textContent = msg;
+    box.appendChild(p);
+
+    return box;
+  }
+
+  function _btn(label, primary) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.style.cssText = [
+      'padding:10px 20px', 'border:none', 'border-radius:8px', 'cursor:pointer',
+      'font-size:0.9rem', 'font-weight:600', 'font-family:inherit',
+      primary
+        ? 'background:var(--primary,#3b7aff);color:#fff'
+        : 'background:#2d3448;color:#c8cde0'
+    ].join(';');
+    return b;
+  }
+
+  function alert(msg, titulo) {
+    return new Promise(resolve => {
+      const overlay = _buildOverlay();
+      const box = _buildBox(titulo || 'Aviso', msg);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:flex-end';
+      const ok = _btn('OK', true);
+      ok.addEventListener('click', () => { document.body.removeChild(overlay); resolve(); });
+      row.appendChild(ok);
+      box.appendChild(row);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      ok.focus();
+    });
+  }
+
+  function confirm(msg, titulo) {
+    return new Promise(resolve => {
+      const overlay = _buildOverlay();
+      const box = _buildBox(titulo || 'Confirmação', msg);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:flex-end;gap:10px';
+      const nao = _btn('Cancelar', false);
+      const sim = _btn('Confirmar', true);
+      nao.addEventListener('click', () => { document.body.removeChild(overlay); resolve(false); });
+      sim.addEventListener('click', () => { document.body.removeChild(overlay); resolve(true); });
+      row.appendChild(nao);
+      row.appendChild(sim);
+      box.appendChild(row);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      sim.focus();
+    });
+  }
+
+  return { alert, confirm };
+})();
+
 function core_formatarKM(input) {
   let val = input.value.trim().replace(/[^\d.,]/g, '').replace('.', ',');
   if (!val) {
@@ -188,7 +276,7 @@ PMRV.core = (function() {
   }
 
   async function confirmarLimpezaCompleta() {
-    const ok = window.confirm('ATENÇÃO: Isso apagará todos os dados salvos e caches offline do app. Deseja continuar?');
+    const ok = await PMRV.modal.confirm('ATENÇÃO: Isso apagará todos os dados salvos e caches offline do app. Deseja continuar?', 'Limpar Dados');
     if (!ok) return;
 
     try {
@@ -196,7 +284,7 @@ PMRV.core = (function() {
       window.location.reload();
     } catch (err) {
       console.error('[PMRV] Falha ao limpar dados locais.', err);
-      window.alert('Não foi possível concluir a limpeza completa dos dados locais.');
+      PMRV.modal.alert('Não foi possível concluir a limpeza completa dos dados locais.');
     }
   }
 

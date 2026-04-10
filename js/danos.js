@@ -250,14 +250,21 @@ const DAN_VISTA_LABELS = {frontal:'Frontal',traseira:'Traseira',esquerda:'Esquer
 const DAN_DMG_EMOJI    = {amassado:'🔨',riscado:'✏️',quebrado:'💥',trincado:'🔍'};
 const DAN_DMG_COR      = {amassado:'#f97316',riscado:'#a78bfa',quebrado:'#ef4444',trincado:'#38bdf8'};
 
-let danVeiculos = [];
-let danVeiculoAtivo = 0;
-let danVeiculo      = null;
-let danDanos        = {};
-let danPosicoes     = {};
-let danVista        = 'frontal';
-let danPontoAberto  = null;
-let danVeiculosSalvos = [];
+// Estado encapsulado no namespace — evita poluição do escopo global
+const DANRT = window.PMRV.danosRuntime = {
+  veiculos: [],
+  veiculoAtivo: 0,
+  veiculo: null,
+  danos: {},
+  posicoes: {},
+  vista: 'frontal',
+  pontoAberto: null,
+  veiculosSalvos: [],
+  v360db: null,
+  v360tab: 'frente',
+  v360editId: null
+};
+
 let danTooltipHideTimer = null;
 let danModoMover = false;
 let danDragState = null;
@@ -276,25 +283,25 @@ function danGetStateModule() {
 
 function danBuildStatePayload() {
   return {
-    currentDamages: danDanos,
-    currentPositions: danPosicoes,
-    currentVehicle: danVeiculo,
-    motoDb: v360db,
-    motoEditId: v360editId,
-    motoTab: v360tab,
-    savedVehicles: danVeiculosSalvos
+    currentDamages: DANRT.danos,
+    currentPositions: DANRT.posicoes,
+    currentVehicle: DANRT.veiculo,
+    motoDb: DANRT.v360db,
+    motoEditId: DANRT.v360editId,
+    motoTab: DANRT.v360tab,
+    savedVehicles: DANRT.veiculosSalvos
   };
 }
 
 function danApplyState(nextState) {
   if (!nextState) return;
-  danDanos = nextState.currentDamages;
-  danPosicoes = nextState.currentPositions || {};
-  danVeiculo = nextState.currentVehicle;
-  v360db = nextState.motoDb;
-  v360editId = nextState.motoEditId;
-  v360tab = nextState.motoTab;
-  danVeiculosSalvos = nextState.savedVehicles;
+  DANRT.danos = nextState.currentDamages;
+  DANRT.posicoes = nextState.currentPositions || {};
+  DANRT.veiculo = nextState.currentVehicle;
+  DANRT.v360db = nextState.motoDb;
+  DANRT.v360editId = nextState.motoEditId;
+  DANRT.v360tab = nextState.motoTab;
+  DANRT.veiculosSalvos = nextState.savedVehicles;
 }
 
 function danGetMeta(tipo) {
@@ -321,27 +328,27 @@ function danAtualizarBotoesTipo(tipo) {
 }
 
 function danAtualizarCabecalhoDiagrama() {
-  if (!danVeiculo || danUsa360(danVeiculo)) return;
-  const label = danGetLabel(danVeiculo);
-  document.getElementById('dan-veh-badge').textContent = danGetEmoji(danVeiculo);
+  if (!DANRT.veiculo || danUsa360(DANRT.veiculo)) return;
+  const label = danGetLabel(DANRT.veiculo);
+  document.getElementById('dan-veh-badge').textContent = danGetEmoji(DANRT.veiculo);
   document.getElementById('dan-diag-title').textContent = 'Danos Aparentes — ' + label;
   danAtualizarThumbs();
   danAtualizarAcoesPosicao();
 }
 
 function danTemListaPecas() {
-  return danVeiculo === 'caminhao' || danVeiculo === 'onibus';
+  return DANRT.veiculo === 'caminhao' || DANRT.veiculo === 'onibus';
 }
 
 function danGetPosicaoAtual(id, fallbackPoint) {
-  return danPosicoes[id] || fallbackPoint;
+  return DANRT.posicoes[id] || fallbackPoint;
 }
 
 function danAtualizarAcoesPosicao() {
   const moveBtn = document.getElementById('dan-move-toggle');
   const saveBtn = document.getElementById('dan-save-points');
   const hint = document.getElementById('dan-hint-txt');
-  const show = !!danVeiculo && !danUsa360(danVeiculo);
+  const show = !!DANRT.veiculo && !danUsa360(DANRT.veiculo);
   if (moveBtn) {
     moveBtn.style.display = show ? 'inline-flex' : 'none';
     moveBtn.classList.toggle('btn-primary', danModoMover);
@@ -374,22 +381,22 @@ function danAtualizarThumbs() {
     esquerda: document.getElementById('dan-tab-esquerda')?.querySelector('.dan-tab-thumb'),
     direita: document.getElementById('dan-tab-direita')?.querySelector('.dan-tab-thumb')
   };
-  if (!danVeiculo || danUsa360(danVeiculo)) return;
-  if (danVeiculo === 'carro') {
+  if (!DANRT.veiculo || danUsa360(DANRT.veiculo)) return;
+  if (DANRT.veiculo === 'carro') {
     if (thumbs.frontal) thumbs.frontal.src = 'carro_frente_nobg.png';
     if (thumbs.traseira) thumbs.traseira.src = 'carro_tras_nobg.png';
     if (thumbs.esquerda) thumbs.esquerda.src = 'carro_esquerda_nobg.png';
     if (thumbs.direita) thumbs.direita.src = 'carro_direita_nobg.png';
     return;
   }
-  if (danVeiculo === 'caminhao') {
+  if (DANRT.veiculo === 'caminhao') {
     if (thumbs.frontal) thumbs.frontal.src = CAMINHAO_IMGS.caminhao_frontal;
     if (thumbs.traseira) thumbs.traseira.src = CAMINHAO_IMGS.caminhao_traseira;
     if (thumbs.esquerda) thumbs.esquerda.src = CAMINHAO_IMGS.caminhao_esquerda;
     if (thumbs.direita) thumbs.direita.src = CAMINHAO_IMGS.caminhao_direita;
     return;
   }
-  if (danVeiculo === 'onibus') {
+  if (DANRT.veiculo === 'onibus') {
     if (thumbs.frontal) thumbs.frontal.src = ONIBUS_IMGS.onibus_frontal;
     if (thumbs.traseira) thumbs.traseira.src = ONIBUS_IMGS.onibus_traseira;
     if (thumbs.esquerda) thumbs.esquerda.src = ONIBUS_IMGS.onibus_esquerda;
@@ -397,37 +404,37 @@ function danAtualizarThumbs() {
     return;
   }
   Object.keys(thumbs).forEach(function(vista) {
-    if (thumbs[vista]) thumbs[vista].src = danMakeThumbDataUrl(danVeiculo, vista);
+    if (thumbs[vista]) thumbs[vista].src = danMakeThumbDataUrl(DANRT.veiculo, vista);
   });
 }
 
 function danAdicionarVeiculo(tipo) {
-  if (danVeiculos.length >= 5) { alert('Limite de 5 veículos atingido!'); return; }
-  danVeiculos.push({ tipo, danos: {}, vista: 'frontal' });
-  danVeiculoAtivo = danVeiculos.length - 1;
+  if (DANRT.veiculos.length >= 5) { PMRV.modal.alert('Limite de 5 veículos atingido!'); return; }
+  DANRT.veiculos.push({ tipo, danos: {}, vista: 'frontal' });
+  DANRT.veiculoAtivo = DANRT.veiculos.length - 1;
   danRenderVeiculos();
 }
 
 function danSelecionarVeiculo(idx) {
-  danVeiculoAtivo = idx;
+  DANRT.veiculoAtivo = idx;
   danRenderVeiculos();
 }
 
 function danRemoverVeiculo(idx) {
-  if (danVeiculos.length <= 1) return;
-  danVeiculos.splice(idx, 1);
-  danVeiculoAtivo = Math.max(0, danVeiculoAtivo - 1);
+  if (DANRT.veiculos.length <= 1) return;
+  DANRT.veiculos.splice(idx, 1);
+  DANRT.veiculoAtivo = Math.max(0, DANRT.veiculoAtivo - 1);
   danRenderVeiculos();
 }
 
 function danRenderVeiculos() {
   const area = document.getElementById('dan-veiculos-area');
   area.innerHTML = '';
-  danVeiculos.forEach((v, idx) => {
+  DANRT.veiculos.forEach((v, idx) => {
     const card = document.createElement('div');
     card.className = 'card';
     card.style.marginBottom = '18px';
-    card.style.border = idx === danVeiculoAtivo ? '2px solid var(--laranja)' : '1px solid var(--border)';
+    card.style.border = idx === DANRT.veiculoAtivo ? '2px solid var(--laranja)' : '1px solid var(--border)';
     card.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:0;">
@@ -435,7 +442,7 @@ function danRenderVeiculos() {
           <p class="card-sub">Toque nos pontos numerados para registrar o dano</p>
         </div>
         <span style="font-size:28px;">${danGetEmoji(v.tipo)}</span>
-        ${danVeiculos.length > 1 ? `<button data-click="danRemoverVeiculo(${idx})" style="font-size:12px;padding:4px 8px;color:#D82A2E;border:1px solid #D82A2E;border-radius:6px;background:transparent;cursor:pointer;">✕ Remover</button>` : ''}
+        ${DANRT.veiculos.length > 1 ? `<button data-click="danRemoverVeiculo(${idx})" style="font-size:12px;padding:4px 8px;color:#D82A2E;border:1px solid #D82A2E;border-radius:6px;background:transparent;cursor:pointer;">✕ Remover</button>` : ''}
       </div>
       <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;">
         ${['frontal','traseira','esquerda','direita'].map(vis =>
@@ -451,7 +458,7 @@ function danRenderVeiculos() {
 }
 
 function danRenderDiagramaMulti(idx) {
-  const v = danVeiculos[idx];
+  const v = DANRT.veiculos[idx];
   if (!v) return;
   const cfg  = DAN_DIAGRAMAS[v.tipo][v.vista || 'frontal'];
   const area = document.getElementById('dan-diagram-area-' + idx);
@@ -512,7 +519,7 @@ function danEscolherVeiculo(v) {
   danApplyState(
     danGetStateModule()?.selectVehicle?.(danBuildStatePayload(), v, danUsa360, v360makeDb)
   );
-  danVista = 'frontal';
+  DANRT.vista = 'frontal';
   danModoMover = false;
   danDragState = null;
   danAtualizarBotoesTipo(v);
@@ -544,19 +551,19 @@ function danPrepararTela() {
   document.getElementById('dan-result-area').style.display = 'none';
   document.getElementById('dan-todos-result-area').style.display = 'none';
   document.getElementById('v360-result-area').style.display = 'none';
-  danAtualizarBotoesTipo(danVeiculo);
+  danAtualizarBotoesTipo(DANRT.veiculo);
   danAtualizarAcoesPosicao();
   danRenderSalvos();
 
-  if (danUsa360(danVeiculo)) {
+  if (danUsa360(DANRT.veiculo)) {
     document.getElementById('dan-step-vehicle').style.display = 'none';
     document.getElementById('dan-step-diagram').style.display = 'none';
     document.getElementById('dan-step-moto360').style.display = 'block';
-    v360switchTab(document.getElementById('v360-tab-' + v360tab), v360tab);
+    v360switchTab(document.getElementById('v360-tab-' + DANRT.v360tab), DANRT.v360tab);
     return;
   }
 
-  if (danVeiculo && !danUsa360(danVeiculo)) {
+  if (DANRT.veiculo && !danUsa360(DANRT.veiculo)) {
     document.getElementById('dan-step-vehicle').style.display = 'none';
     document.getElementById('dan-step-diagram').style.display = 'block';
     document.getElementById('dan-step-moto360').style.display = 'none';
@@ -569,8 +576,8 @@ function danPrepararTela() {
   danVoltarStep1();
 }
 
-function danLimparTudo() {
-  if (!confirm('Apagar todos os danos registrados?')) return;
+async function danLimparTudo() {
+  if (!await PMRV.modal.confirm('Apagar todos os danos registrados?')) return;
   danApplyState(
     danGetStateModule()?.clearAll?.(v360makeDb)
   );
@@ -589,20 +596,20 @@ function danLimparTudo() {
 
 function danSalvarVeiculo() {
   danSalvarLocalizacaoCirculos(true);
-  if (danUsa360(danVeiculo)) {
-    if (!danGetReportModule()?.hasMotoAvaria?.(v360db)) { alert('Registre ao menos um dano antes de salvar.'); return; }
+  if (danUsa360(DANRT.veiculo)) {
+    if (!danGetReportModule()?.hasMotoAvaria?.(DANRT.v360db)) { PMRV.modal.alert('Registre ao menos um dano antes de salvar.'); return; }
     danApplyState(
       danGetStateModule()?.saveCurrentVehicle?.(
         danBuildStatePayload(),
-        { tipo: 'moto', v360db: danGetReportModule().cloneMotoSnapshot(v360db) }
+        { tipo: 'moto', DANRT.v360db: danGetReportModule().cloneMotoSnapshot(DANRT.v360db) }
       )
     );
   } else {
-    if (!Object.keys(danDanos).length) { alert('Registre ao menos um dano antes de salvar.'); return; }
+    if (!Object.keys(DANRT.danos).length) { PMRV.modal.alert('Registre ao menos um dano antes de salvar.'); return; }
     danApplyState(
       danGetStateModule()?.saveCurrentVehicle?.(
         danBuildStatePayload(),
-        { tipo: danVeiculo, danos: Object.assign({}, danDanos), posicoes: JSON.parse(JSON.stringify(danPosicoes || {})) }
+        { tipo: DANRT.veiculo, danos: Object.assign({}, DANRT.danos), posicoes: JSON.parse(JSON.stringify(DANRT.posicoes || {})) }
       )
     );
   }
@@ -616,9 +623,9 @@ function danSalvarVeiculo() {
 function danRenderSalvos() {
   const area = document.getElementById('dan-salvos-area');
   const lista = document.getElementById('dan-salvos-lista');
-  if (!danVeiculosSalvos.length) { area.style.display = 'none'; return; }
+  if (!DANRT.veiculosSalvos.length) { area.style.display = 'none'; return; }
   area.style.display = 'block';
-  lista.innerHTML = danGetRenderModule()?.buildSavedVehiclesHtml?.(danVeiculosSalvos, {
+  lista.innerHTML = danGetRenderModule()?.buildSavedVehiclesHtml?.(DANRT.veiculosSalvos, {
     countVehicleAvarias: danGetReportModule()?.countVehicleAvarias,
     getEmoji: danGetEmoji,
     getLabel: danGetLabel,
@@ -635,14 +642,14 @@ function danRemoverSalvo(idx) {
 }
 
 function danGerarTextoTodos() {
-  if (!danVeiculosSalvos.length) { alert('Nenhum veículo salvo ainda.'); return; }
+  if (!DANRT.veiculosSalvos.length) { PMRV.modal.alert('Nenhum veículo salvo ainda.'); return; }
   const txt = danGetReportModule()?.buildMultipleReport?.({
     date: new Date().toLocaleDateString('pt-BR'),
     diagramas: DAN_DIAGRAMAS,
     getLabel: danGetLabel,
     motoTabNames: { frente: 'Frente', tras: 'Traseira', direita: 'Lado Direito', esquerda: 'Lado Esquerdo' },
     uses360: danUsa360,
-    vehicles: danVeiculosSalvos,
+    vehicles: DANRT.veiculosSalvos,
     vistaLabels: DAN_VISTA_LABELS
   }) || '';
 
@@ -713,8 +720,8 @@ function danFotoLimpar(gridId, actionsId) {
 function danFotoCompartilhar(gridId) {
   const grid  = document.getElementById(gridId);
   const fotos = Array.from(grid.querySelectorAll('img'));
-  if (!fotos.length) { alert('Nenhuma foto para compartilhar.'); return; }
-  const titulo = gridId.includes('moto') ? 'Motocicleta' : danGetLabel(danVeiculo || 'carro');
+  if (!fotos.length) { PMRV.modal.alert('Nenhuma foto para compartilhar.'); return; }
+  const titulo = gridId.includes('moto') ? 'Motocicleta' : danGetLabel(DANRT.veiculo || 'carro');
   const overlay = document.getElementById('foto-galeria-overlay');
   overlay.querySelector('.foto-galeria-titulo').textContent = '📸 Fotos — ' + titulo;
   const g = overlay.querySelector('.foto-galeria-grid');
@@ -733,24 +740,24 @@ function danFotoCompartilhar(gridId) {
 }
 
 function danMudarVista(v) {
-  danVista = v;
+  DANRT.vista = v;
   danAtualizarTabs();
   danRenderDiagrama();
 }
 
 function danAtualizarTabs() {
   ['frontal','traseira','esquerda','direita'].forEach(v => {
-    document.getElementById('dan-tab-' + v).classList.toggle('active', v === danVista);
+    document.getElementById('dan-tab-' + v).classList.toggle('active', v === DANRT.vista);
   });
 }
 
 function danGetViewMetrics() {
-  const cfg = DAN_DIAGRAMAS[danVeiculo][danVista];
+  const cfg = DAN_DIAGRAMAS[DANRT.veiculo][DANRT.vista];
   const [,, vbW, vbH] = cfg.vb.split(' ').map(Number);
   const isMobile = window.matchMedia('(max-width: 520px)').matches;
   const imgBox = (isMobile && cfg.img && DAN_IMG_BOXES[cfg.img]) ? DAN_IMG_BOXES[cfg.img] : null;
-  const mobileOverrides = isMobile && DAN_MOBILE_POINT_OVERRIDES[danVeiculo]
-    ? DAN_MOBILE_POINT_OVERRIDES[danVeiculo][danVista]
+  const mobileOverrides = isMobile && DAN_MOBILE_POINT_OVERRIDES[DANRT.veiculo]
+    ? DAN_MOBILE_POINT_OVERRIDES[DANRT.veiculo][DANRT.vista]
     : null;
   return { cfg, vbW, vbH, isMobile, imgBox, mobileOverrides };
 }
@@ -787,7 +794,7 @@ function danSvgToStoredCoords(x, y, metrics) {
    DANOS — RENDER SVG
 --------------------------------------------------------------- */
 function danRenderDiagrama() {
-  if (!danVeiculo) return;
+  if (!DANRT.veiculo) return;
   const metrics = danGetViewMetrics();
   const cfg  = metrics.cfg;
   const area = document.getElementById('dan-diagram-area');
@@ -804,7 +811,7 @@ function danRenderDiagrama() {
   cfg.pontos.forEach((p, i) => {
     const basePoint = mobileOverrides && mobileOverrides[p.id] && !p.saved ? { ...p, ...mobileOverrides[p.id] } : p;
     const ref = danGetPosicaoAtual(p.id, basePoint);
-    const dano = danDanos[p.id];
+    const dano = DANRT.danos[p.id];
     const cor  = dano ? DAN_DMG_COR[dano] : '#F58220';
     const coords = danStoredToSvgCoords(ref.px, ref.py, metrics);
     const cx   = coords.x;
@@ -814,7 +821,7 @@ function danRenderDiagrama() {
       <g class="dan-point-group${danModoMover ? ' move-mode' : ''}" style="cursor:${danModoMover ? 'grab' : 'pointer'};transform-origin:${cx}px ${cy}px" ${danModoMover ? '' : `data-click="danAbrirModal('${p.id}')"`} data-point-id="${p.id}">
         <title>${p.label}</title>
         <circle cx="${cx}" cy="${cy}" r="${rRing}" fill="none" stroke="${cor}" stroke-width="1.5" stroke-dasharray="4 2" opacity="${dano?'1':'0.5'}"/>
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${dano ? cor : 'rgba(10,20,60,0.82)'}" stroke="${cor}" stroke-width="2" data-part-label="${p.label}" data-zoom-src="${zoomSrc}" data-zoom-x="${ref.px}" data-zoom-y="${ref.py}" data-zoom-scale="${danVeiculo === 'carro' ? 300 : 240}" data-point-id="${p.id}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${dano ? cor : 'rgba(10,20,60,0.82)'}" stroke="${cor}" stroke-width="2" data-part-label="${p.label}" data-zoom-src="${zoomSrc}" data-zoom-x="${ref.px}" data-zoom-y="${ref.py}" data-zoom-scale="${DANRT.veiculo === 'carro' ? 300 : 240}" data-point-id="${p.id}"/>
         <text x="${cx}" y="${cy + fSize*0.38}" text-anchor="middle" dominant-baseline="middle"
               fill="${dano?'#000':'#fff'}" font-size="${fSize}" font-weight="900"
               font-family="Barlow Condensed,sans-serif" style="pointer-events:none">${i+1}</text>
@@ -852,7 +859,7 @@ function danRenderDiagrama() {
     }
   } else {
     bgEl = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0d1117" rx="12"/>`;
-    bgEl += danFallbackSvg(danVeiculo, danVista, vbW, vbH);
+    bgEl += danFallbackSvg(DANRT.veiculo, DANRT.vista, vbW, vbH);
   }
 
   area.innerHTML = `<svg id="dan-svg-main" viewBox="${cfg.vb}" xmlns="http://www.w3.org/2000/svg"
@@ -1010,17 +1017,17 @@ function danAlternarModoMover() {
   danDragState = null;
   danHideTooltip();
   danAtualizarAcoesPosicao();
-  if (danVeiculo && !danUsa360(danVeiculo)) danRenderDiagrama();
+  if (DANRT.veiculo && !danUsa360(DANRT.veiculo)) danRenderDiagrama();
 }
 
 function danSalvarLocalizacaoCirculos(silent) {
-  const total = Object.keys(danPosicoes || {}).length;
+  const total = Object.keys(DANRT.posicoes || {}).length;
   if (!silent && !total) {
-    alert('Nenhuma nova localização foi ajustada ainda.');
+    PMRV.modal.alert('Nenhuma nova localização foi ajustada ainda.');
     return;
   }
   if (!silent) {
-    alert(total === 1 ? '1 localização salva.' : `${total} localizações salvas.`);
+    PMRV.modal.alert(total === 1 ? '1 localização salva.' : `${total} localizações salvas.`);
   }
 }
 
@@ -1070,12 +1077,12 @@ function danBindDragPoints(container, metrics) {
 
 function danMoverPonto(id, x, y, metrics) {
   const coords = danSvgToStoredCoords(x, y, metrics);
-  const cfg = DAN_DIAGRAMAS[danVeiculo]?.[danVista];
+  const cfg = DAN_DIAGRAMAS[DANRT.veiculo]?.[DANRT.vista];
   const original = cfg?.pontos?.find(item => item.id === id);
   if (!original) return;
-  danPosicoes[id] = {
+  DANRT.posicoes[id] = {
     ...original,
-    ...danPosicoes[id],
+    ...DANRT.posicoes[id],
     px: coords.px,
     py: coords.py,
     saved: true
@@ -1086,7 +1093,7 @@ function danMoverPonto(id, x, y, metrics) {
 function danAtualizarPosicaoPontoNoDom(id, metrics) {
   const svg = document.getElementById('dan-svg-main');
   if (!svg) return;
-  const cfg = DAN_DIAGRAMAS[danVeiculo]?.[danVista];
+  const cfg = DAN_DIAGRAMAS[DANRT.veiculo]?.[DANRT.vista];
   const original = cfg?.pontos?.find(item => item.id === id);
   if (!original) return;
   const ref = danGetPosicaoAtual(id, original);
@@ -1318,16 +1325,16 @@ function danMotoSVGFallback(vista, W, H) {
    DANOS — MODAL
 --------------------------------------------------------------- */
 function danAbrirModal(id) {
-  danPontoAberto = id;
-  const cfg   = DAN_DIAGRAMAS[danVeiculo][danVista];
+  DANRT.pontoAberto = id;
+  const cfg   = DAN_DIAGRAMAS[DANRT.veiculo][DANRT.vista];
   const ponto = cfg.pontos.find(p => p.id === id);
   const num   = cfg.pontos.indexOf(ponto) + 1;
-  document.getElementById('dan-modal-title-g').textContent = `Ponto ${num} · ${DAN_VISTA_LABELS[danVista]} · ${ponto.label}`;
+  document.getElementById('dan-modal-title-g').textContent = `Ponto ${num} · ${DAN_VISTA_LABELS[DANRT.vista]} · ${ponto.label}`;
   document.getElementById('dan-modal-sub-g').textContent = `Selecione o tipo de dano observado nesta peça para registrar rapidamente no relatório.`;
 
   ['amassado','riscado','quebrado','trincado'].forEach(t => {
     const btn = document.getElementById('dan-opt-' + t + '-g');
-    btn.className = 'dan-dmg-opt' + (danDanos[id] === t ? ' sel-' + t : '');
+    btn.className = 'dan-dmg-opt' + (DANRT.danos[id] === t ? ' sel-' + t : '');
   });
 
   document.getElementById('dan-modal-global').classList.add('open');
@@ -1335,7 +1342,7 @@ function danAbrirModal(id) {
 
 function danFecharModal() {
   document.getElementById('dan-modal-global').classList.remove('open');
-  danPontoAberto = null;
+  DANRT.pontoAberto = null;
 }
 
 function danFecharModalFora(e) {
@@ -1343,16 +1350,16 @@ function danFecharModalFora(e) {
 }
 
 function danSelecionarDano(tipo) {
-  if (!danPontoAberto) return;
-  danDanos[danPontoAberto] = tipo;
+  if (!DANRT.pontoAberto) return;
+  DANRT.danos[DANRT.pontoAberto] = tipo;
   danFecharModal();
   danRenderDiagrama();
   danAtualizarSummary();
 }
 
 function danRemoverDano() {
-  if (!danPontoAberto) return;
-  delete danDanos[danPontoAberto];
+  if (!DANRT.pontoAberto) return;
+  delete DANRT.danos[DANRT.pontoAberto];
   danFecharModal();
   danRenderDiagrama();
   danAtualizarSummary();
@@ -1415,7 +1422,7 @@ function danEditarResumo(vista, id) {
 }
 
 function danSelecionarPecaLista(id) {
-  const cfg = DAN_DIAGRAMAS[danVeiculo]?.[danVista];
+  const cfg = DAN_DIAGRAMAS[DANRT.veiculo]?.[DANRT.vista];
   const ponto = cfg?.pontos?.find(item => item.id === id);
   if (ponto) {
     danSetPartReadout('dan-part-readout', ponto.label, 'Passe ou toque em um círculo para ver o nome da peça.');
@@ -1435,16 +1442,16 @@ function danRenderListaPecas() {
     return;
   }
 
-  const cfg = DAN_DIAGRAMAS[danVeiculo]?.[danVista];
+  const cfg = DAN_DIAGRAMAS[DANRT.veiculo]?.[DANRT.vista];
   if (!cfg) {
     area.style.display = 'none';
     list.innerHTML = '';
     return;
   }
 
-  sub.textContent = `${DAN_VISTA_LABELS[danVista]}: toque em uma peça numerada para classificar o dano e depois use "Salvar este veículo".`;
+  sub.textContent = `${DAN_VISTA_LABELS[DANRT.vista]}: toque em uma peça numerada para classificar o dano e depois use "Salvar este veículo".`;
   list.innerHTML = cfg.pontos.map((ponto, index) => {
-    const dano = danDanos[ponto.id];
+    const dano = DANRT.danos[ponto.id];
     const css = dano ? ` dan-part-item-${dano}` : '';
     const status = dano
       ? `${DAN_DMG_EMOJI[dano]} ${dano.charAt(0).toUpperCase() + dano.slice(1)}`
@@ -1465,7 +1472,7 @@ function danRenderListaPecas() {
 --------------------------------------------------------------- */
 function danAtualizarSummary() {
   const container = document.getElementById('dan-summary-tags');
-  const ids = Object.keys(danDanos);
+  const ids = Object.keys(DANRT.danos);
   if (!ids.length) {
     container.innerHTML = '<div style="font-size:13px;color:var(--label);text-align:center;padding:18px;border:1px dashed var(--border);border-radius:10px;">Nenhum dano registrado ainda.<br>Toque nos pontos do diagrama.</div>';
     danRenderListaPecas();
@@ -1484,10 +1491,10 @@ function danAtualizarSummary() {
     if (!pontos.length) return;
     html += `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--label);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;">${DAN_VISTA_LABELS[vista]}</div><div>`;
     pontos.forEach(id => {
-      const cfg   = DAN_DIAGRAMAS[danVeiculo][vista];
+      const cfg   = DAN_DIAGRAMAS[DANRT.veiculo][vista];
       const ponto = cfg.pontos.find(p => p.id === id);
       if (!ponto) return;
-      const tipo = danDanos[id];
+      const tipo = DANRT.danos[id];
       const num  = cfg.pontos.indexOf(ponto) + 1;
       html += `<span class="dan-tag dan-tag-${tipo}" data-click="danEditarResumo('${vista}','${id}')" title="Clique para editar">${DAN_DMG_EMOJI[tipo]} ${num}. ${ponto.label} — ${tipo}</span>`;
     });
@@ -1503,13 +1510,13 @@ function danAtualizarSummary() {
 --------------------------------------------------------------- */
 function danGerarTexto() {
   /* ── MOTO via v360 ── */
-  if (danUsa360(danVeiculo)) {
+  if (danUsa360(DANRT.veiculo)) {
     const txt = danGetReportModule()?.buildMotoReport?.(
-      v360db,
+      DANRT.v360db,
       V360_NAMES,
       new Date().toLocaleDateString('pt-BR')
     ) || '';
-    if (!txt) { alert('Inspecione ao menos uma peça antes de gerar o relatório.'); return; }
+    if (!txt) { PMRV.modal.alert('Inspecione ao menos uma peça antes de gerar o relatório.'); return; }
 
     document.getElementById('v360-result-text').textContent = txt;
     const ra = document.getElementById('v360-result-area');
@@ -1520,14 +1527,14 @@ function danGerarTexto() {
 
   /* ── CARRO / CAMINHÃO via diagrama SVG ── */
   const txt = danGetReportModule()?.buildDiagramReport?.({
-    danos: danDanos,
+    danos: DANRT.danos,
     date: new Date().toLocaleDateString('pt-BR'),
     diagramas: DAN_DIAGRAMAS,
     getLabel: danGetLabel,
-    tipo: danVeiculo,
+    tipo: DANRT.veiculo,
     vistaLabels: DAN_VISTA_LABELS
   }) || '';
-  if (!txt) { alert('Registre ao menos um dano antes de gerar o relatório.'); return; }
+  if (!txt) { PMRV.modal.alert('Registre ao menos um dano antes de gerar o relatório.'); return; }
 
   document.getElementById('dan-result-text').textContent = txt;
   const ra = document.getElementById('dan-result-area');
@@ -1549,8 +1556,8 @@ function danWhatsApp() {
 /* ===============================================================
    VISTORIA 360° — MOTOCICLETA (v360)
    =============================================================== */
-let v360tab = 'frente';
-let v360editId = null;
+let DANRT.v360tab = 'frente';
+let DANRT.v360editId = null;
 
 const V360_TABS  = ['frente','tras','direita','esquerda'];
 const V360_NAMES = {frente:'FRENTE',tras:'TRASEIRA',direita:'DIREITA',esquerda:'ESQUERDA'};
@@ -1592,7 +1599,7 @@ const V360_MOTO_PARTES = [
   { n:"33", t:"Banco",                           g:"TRASEIRO"      }
 ];
 
-let v360db = v360makeDb();
+let DANRT.v360db = v360makeDb();
 
 // Inicialização
 danCarregarCoordenadasSalvas();
@@ -1621,16 +1628,16 @@ function v360switchTab(el, t){
 }
 
 function v360saveModal(dano){
-  if(v360editId !== null){
-    const item = v360db[v360tab].find(i=>i.id===v360editId);
+  if(DANRT.v360editId !== null){
+    const item = DANRT.v360db[DANRT.v360tab].find(i=>i.id===DANRT.v360editId);
     if(item) item.dano = dano;
   }
   v360closeModal(); v360render();
 }
 
 function v360clearDano(){
-  if(v360editId !== null){
-    const item = v360db[v360tab].find(i=>i.id===v360editId);
+  if(DANRT.v360editId !== null){
+    const item = DANRT.v360db[DANRT.v360tab].find(i=>i.id===DANRT.v360editId);
     if(item) item.dano = null;
   }
   v360closeModal(); v360render();
@@ -1648,7 +1655,7 @@ function v360closeModalOnBackdrop(event) {
 }
 
 function v360openEdit(id){
-  const item = v360db[v360tab].find(i=>i.id===id); if(!item) return;
+  const item = DANRT.v360db[DANRT.v360tab].find(i=>i.id===id); if(!item) return;
   danApplyState(
     danGetStateModule()?.setMotoEditId?.(danBuildStatePayload(), id)
   );
@@ -1674,7 +1681,7 @@ function v360render(){
   const zoomSrc = activeImg ? activeImg.getAttribute('src') : '';
 
   /* 2 — Desenhar pinos dos itens posicionados na aba atual */
-  v360db[v360tab].forEach(item=>{
+  DANRT.v360db[DANRT.v360tab].forEach(item=>{
     const cor = v360corDano(item.dano);
     const ehAvaria = item.dano !== null;
     const pin = document.createElement('div');
@@ -1711,7 +1718,7 @@ function v360renderPalette(){
   list.innerHTML = danGetRenderModule()?.buildV360PaletteHtml?.(
     V360_MOTO_PARTES,
     V360_TABS,
-    v360db,
+    DANRT.v360db,
     {
       getDamageColor: v360corDano,
       tabNames: V360_NAMES
@@ -1731,7 +1738,7 @@ function v360updateSummary(){
   const container = document.getElementById('v360-summary-tags');
   container.innerHTML = danGetRenderModule()?.buildV360SummaryHtml?.(
     V360_TABS,
-    v360db,
+    DANRT.v360db,
     {
       getDamageColor: v360corDano,
       getDamageEmoji(damage) {
@@ -1744,8 +1751,8 @@ function v360updateSummary(){
   ) || '';
 }
 
-function v360limpar(){
-  if(confirm('Resetar toda a vistoria? As posições e classificações serão apagadas.')){
+async function v360limpar(){
+  if(await PMRV.modal.confirm('Resetar toda a vistoria? As posições e classificações serão apagadas.')){
     danApplyState(
       danGetStateModule()?.resetMotoInspection?.(danBuildStatePayload(), v360makeDb)
     );

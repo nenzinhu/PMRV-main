@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Modulo: Croqui Dinamico de Sinistros
  * Motor de desenho tecnico para pericia rodoviaria
  */
@@ -182,7 +182,7 @@ function croqui_inserirIcone(tipo) {
   const config = CROQUI_ICON_MAP[tipo];
   if (!config) {
     console.warn(`[Croqui] Icone nao mapeado: ${tipo}`);
-    alert(`Icone indisponivel: ${tipo}`);
+    PMRV.modal.alert(`Icone indisponivel: ${tipo}`);
     return null;
   }
 
@@ -234,7 +234,7 @@ async function croqui_inserirSvg(filename, fromRoot = false) {
     return element;
   } catch (err) {
     console.error('[Croqui] Erro ao inserir SVG.', err);
-    alert(`Nao foi possivel carregar o SVG: ${filename}`);
+    PMRV.modal.alert(`Nao foi possivel carregar o SVG: ${filename}`);
     return null;
   }
 }
@@ -258,7 +258,7 @@ async function croqui_inserirPistaSvg(filename) {
     return element;
   } catch (err) {
     console.error('[Croqui] Erro ao inserir pista SVG.', err);
-    alert(`Nao foi possivel carregar a pista: ${filename}`);
+    PMRV.modal.alert(`Nao foi possivel carregar a pista: ${filename}`);
     return null;
   }
 }
@@ -367,8 +367,8 @@ function croqui_camada(dir) {
   }
 }
 
-function croqui_limpar() {
-  if (!confirm('Deseja limpar todo o croqui?')) return;
+async function croqui_limpar() {
+  if (!await PMRV.modal.confirm('Deseja limpar todo o croqui?')) return;
   croqui_getLayer('croqui-vias').innerHTML = '';
   croqui_getLayer('croqui-objetos').innerHTML = '';
   croqui_clearSelection();
@@ -405,14 +405,14 @@ async function croqui_exportar() {
 
   image.onerror = () => {
     URL.revokeObjectURL(url);
-    alert('Nao foi possivel exportar o croqui.');
+    PMRV.modal.alert('Nao foi possivel exportar o croqui.');
   };
 
   image.src = url;
 }
 
 function croqui_whatsapp() {
-  alert("Dica: use 'Salvar PNG' e anexe a imagem no WhatsApp.");
+  PMRV.modal.alert("Dica: use 'Salvar PNG' e anexe a imagem no WhatsApp.");
 }
 
 function croqui_resetCanvas() {
@@ -433,7 +433,7 @@ function croqui_placeElement(element, transform) {
 }
 
 async function croqui_aplicarModelo(tipo) {
-  if (!confirm('Isso ira limpar o desenho atual para aplicar o modelo. Continuar?')) return;
+  if (!await PMRV.modal.confirm('Isso ira limpar o desenho atual para aplicar o modelo. Continuar?')) return;
 
   croqui_resetCanvas();
 
