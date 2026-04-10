@@ -3,7 +3,8 @@
  */
 
 (function() {
-  const TOMTOM_KEY = '3g2ZOIEsJUN2VTkHi6dYW8PuV4kiBTUu';
+  const TOMTOM_KEY_STORAGE = 'pmrv_refs_tomtom_key_v1';
+  const TOMTOM_KEY_CANDIDATES = ['Api.txt', 'api.txt', 'Api.tct', 'api.tct'];
   const MAX_DETOUR_TIME = 900; // 15 minutos
 
   let selectedCategories = ['7311', '7322', '7324', '7323', '9113', '9361009', '7321', '7326', '7315', '9361'];
@@ -12,6 +13,7 @@
     if (typeof gps_preencherSelects === 'function') {
       gps_preencherSelects();
     }
+    hydrateTomTomKey().catch(() => {});
     window.ref_prox_atualizarReferenciaPrincipal();
   };
 
@@ -75,6 +77,33 @@
     }
   };
 
+  async function loadTomTomKeyFromFile() {
+    for (const candidate of TOMTOM_KEY_CANDIDATES) {
+      try {
+        const response = await fetch(candidate, { cache: 'no-store' });
+        if (!response.ok) continue;
+        const key = String(await response.text()).trim();
+        if (!key) continue;
+        localStorage.setItem(TOMTOM_KEY_STORAGE, key);
+        return key;
+      } catch (error) {
+      }
+    }
+    return '';
+  }
+
+  async function hydrateTomTomKey() {
+    const persisted = localStorage.getItem(TOMTOM_KEY_STORAGE);
+    if (persisted) return persisted;
+    return loadTomTomKeyFromFile();
+  }
+
+  async function getTomTomKey() {
+    const persisted = String(localStorage.getItem(TOMTOM_KEY_STORAGE) || '').trim();
+    if (persisted) return persisted;
+    return hydrateTomTomKey();
+  }
+
   function buildRoutePoints(roadName, startKm = 0) {
     const allData = window.GPS_RODOVIAS_SC || {};
     let points = allData[roadName];
@@ -105,7 +134,12 @@
   }
 
   async function fetchTomTomAlongRoute(points, categories) {
-    const url = `https://api.tomtom.com/search/2/alongRoute/search.json?key=${TOMTOM_KEY}&maxDetourTime=${MAX_DETOUR_TIME}&limit=20&categorySet=${categories.join(',')}`;
+    const tomTomKey = await getTomTomKey();
+    if (!tomTomKey) {
+      throw new Error('Chave TomTom nao encontrada. Verifique Api.txt.');
+    }
+
+    const url = `https://api.tomtom.com/search/2/alongRoute/search.json?key=${encodeURIComponent(tomTomKey)}&maxDetourTime=${MAX_DETOUR_TIME}&limit=20&categorySet=${categories.join(',')}`;
     const body = { route: { points } };
 
     const response = await fetch(url, {
@@ -115,7 +149,18 @@
     });
 
     if (!response.ok) {
-      throw new Error(`Erro API TomTom: ${response.status}`);
+      let detail = '';
+      try {
+        const errorPayload = await response.json();
+        detail = errorPayload?.detailedError?.message || errorPayload?.error?.description || errorPayload?.error || '';
+      } catch (error) {
+        try {
+          detail = await response.text();
+        } catch (textError) {
+        }
+      }
+      const suffix = detail ? ` - ${String(detail).trim()}` : '';
+      throw new Error(`Erro API TomTom: ${response.status}${suffix}`);
     }
 
     const data = await response.json();
