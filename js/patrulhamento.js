@@ -6,6 +6,8 @@
 let patRelogioHandle = null;
 let PAT_SPEECH_RECOGNITION = null;
 const PAT_GPS_STATUS_LABEL = 'Sintonizando...';
+let PAT_LOTE_PLACAS = [];
+let PAT_LOTE_SEEN = new Set();
 
 const PAT_QUICK_INFRACOES = {
   '518-51': { nome: 'Cinto - Condutor sem cinto', codigo: '518-51', gravidade: 'Grave', artigo: 'Art. 167' },
@@ -134,6 +136,7 @@ function pat_resetFormulario() {
   if (infraData) infraData.value = '';
   if (manualNome) manualNome.value = '';
   if (manualCodigo) manualCodigo.value = '';
+  pat_limparLotePlacas();
 
   document.getElementById('pat_infra_manual_box')?.classList.add('hidden');
   document.getElementById('pat_quick_cinto_box')?.classList.add('hidden');
@@ -217,6 +220,14 @@ function pat_setBotaoVoz(state, text) {
   btn.textContent = text;
 }
 
+function pat_setBotaoLote(state, text) {
+  const btn = document.getElementById('btn-pat-placa-lote');
+  if (!btn) return;
+
+  btn.disabled = state === 'loading';
+  btn.textContent = text;
+}
+
 function pat_normalizarTextoVoz(texto) {
   return String(texto || '')
     .normalize('NFD')
@@ -263,12 +274,87 @@ function pat_converterFalaEmPlaca(texto) {
   return fallback.length >= 7 ? fallback.slice(0, 7) : fallback;
 }
 
+function pat_validarFormatoPlaca(placa) {
+  return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(String(placa || '').toUpperCase());
+}
+
+function pat_tokenParaChar(token) {
+  if (!token) return '';
+  if (PAT_VOICE_TOKEN_MAP[token]) return PAT_VOICE_TOKEN_MAP[token];
+  if (/^[a-z]$/.test(token)) return token.toUpperCase();
+  if (/^\d$/.test(token)) return token;
+  if (/^[a-z0-9]{7}$/i.test(token)) return token.toUpperCase();
+  return '';
+}
+
+function pat_extrairPlacasDeLote(texto) {
+  const tokens = pat_normalizarTextoVoz(texto).split(' ').filter(Boolean);
+  const placas = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] !== 'placa') continue;
+
+    let valor = '';
+    for (let j = i + 1; j < tokens.length && valor.length < 7; j++) {
+      const token = tokens[j];
+      if (token === 'placa' || token === 'terminou') break;
+      if (['mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'número'].includes(token)) continue;
+      valor += pat_tokenParaChar(token);
+    }
+
+    const placa = valor.replace(/[^A-Z0-9]/g, '').slice(0, 7);
+    if (placa.length === 7 && pat_validarFormatoPlaca(placa)) placas.push(placa);
+  }
+
+  return placas;
+}
+
+function pat_renderizarLotePlacas() {
+  const box = document.getElementById('pat_lote_box');
+  const lista = document.getElementById('pat_lote_lista');
+  const status = document.getElementById('pat_lote_status');
+  if (!box || !lista || !status) return;
+
+  box.classList.toggle('hidden', PAT_LOTE_PLACAS.length === 0);
+  if (!PAT_LOTE_PLACAS.length) {
+    lista.innerHTML = '';
+    status.textContent = 'Diga `placa` e os 7 caracteres. Diga `terminou` para encerrar.';
+    return;
+  }
+
+  status.textContent = `Lote capturado: ${PAT_LOTE_PLACAS.length} placa(s).`;
+  lista.innerHTML = PAT_LOTE_PLACAS.map((placa) =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(37,99,235,.08);font-family:monospace;font-weight:700;">${pat_escapeHtml(placa)} <button type="button" class="btn btn-sm" style="padding:2px 8px;min-height:auto;" data-click="pat_removerPlacaLote('${placa}')">x</button></span>`
+  ).join('');
+}
+
+function pat_adicionarPlacaNoLote(placa) {
+  const valor = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+  if (!pat_validarFormatoPlaca(valor) || PAT_LOTE_SEEN.has(valor)) return false;
+  PAT_LOTE_SEEN.add(valor);
+  PAT_LOTE_PLACAS.push(valor);
+  pat_renderizarLotePlacas();
+  return true;
+}
+
+function pat_limparLotePlacas() {
+  PAT_LOTE_PLACAS = [];
+  PAT_LOTE_SEEN = new Set();
+  pat_renderizarLotePlacas();
+}
+
+function pat_removerPlacaLote(placa) {
+  PAT_LOTE_PLACAS = PAT_LOTE_PLACAS.filter((item) => item !== placa);
+  PAT_LOTE_SEEN = new Set(PAT_LOTE_PLACAS);
+  pat_renderizarLotePlacas();
+}
+
 function pat_aplicarPlacaReconhecida(placa) {
   const placaEl = document.getElementById('pat_placa');
   if (!placaEl) return false;
 
   const valor = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
-  if (valor.length < 7) {
+  if (!pat_validarFormatoPlaca(valor)) {
     return false;
   }
 
@@ -341,6 +427,76 @@ function pat_iniciarVozPlaca() {
   recognition.start();
 }
 
+function pat_pararReconhecimentoVoz() {
+  if (!PAT_SPEECH_RECOGNITION) return;
+  try {
+    PAT_SPEECH_RECOGNITION.stop();
+  } catch (error) {
+    console.warn('Falha ao interromper reconhecimento de voz:', error);
+  }
+  PAT_SPEECH_RECOGNITION = null;
+}
+
+function pat_iniciarVozLotePlacas() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Reconhecimento de voz nao suportado neste navegador.');
+    return;
+  }
+
+  pat_pararReconhecimentoVoz();
+  pat_limparLotePlacas();
+
+  const recognition = new SpeechRecognition();
+  PAT_SPEECH_RECOGNITION = recognition;
+
+  recognition.lang = 'pt-BR';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+
+  pat_setBotaoLote('loading', '🎙️ Lote ouvindo...');
+  document.getElementById('pat_lote_box')?.classList.remove('hidden');
+
+  recognition.onresult = (event) => {
+    const resultados = [];
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      resultados.push(event.results[i][0].transcript || '');
+    }
+
+    const textoFalado = resultados.join(' ').trim();
+    const normalizado = pat_normalizarTextoVoz(textoFalado);
+    if (!normalizado) return;
+
+    pat_extrairPlacasDeLote(textoFalado).forEach((placa) => pat_adicionarPlacaNoLote(placa));
+
+    const status = document.getElementById('pat_lote_status');
+    if (status && !normalizado.includes('terminou')) {
+      status.textContent = `Ouvindo lote... ${PAT_LOTE_PLACAS.length} placa(s) reconhecida(s).`;
+    }
+
+    if (normalizado.includes('terminou')) {
+      pat_pararReconhecimentoVoz();
+      pat_setBotaoLote('idle', '🎙️ Lote');
+      pat_renderizarLotePlacas();
+    }
+  };
+
+  recognition.onerror = (event) => {
+    const erro = event?.error || 'desconhecido';
+    if (erro !== 'no-speech' && erro !== 'aborted') {
+      alert(`Erro no reconhecimento de voz: ${erro}`);
+    }
+  };
+
+  recognition.onend = () => {
+    PAT_SPEECH_RECOGNITION = null;
+    pat_setBotaoLote('idle', '🎙️ Lote');
+  };
+
+  recognition.start();
+}
+
 function pat_selectQuick(codigo) {
   const display = document.getElementById('pat_infracao_display');
   const dataInput = document.getElementById('pat_infracao_data');
@@ -391,13 +547,11 @@ function pat_selectQuick(codigo) {
   if (btn) btn.classList.add('active');
 }
 
-function pat_salvarVeiculo() {
-  const placaInput = document.getElementById('pat_placa');
+function pat_coletarContextoFormulario() {
   const infracaoDataInput = document.getElementById('pat_infracao_data');
-  if (!placaInput || !infracaoDataInput) return;
+  if (!infracaoDataInput) return null;
 
   const agora = new Date();
-  const placa = placaInput.value.trim();
   const data = document.getElementById('pat_data')?.value || agora.toLocaleDateString('pt-BR');
   const hora = document.getElementById('pat_hora')?.value || agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const obs = document.getElementById('pat_obs')?.value.trim() || '';
@@ -414,18 +568,13 @@ function pat_salvarVeiculo() {
     local = rod ? `${rod}, KM ${km}` : `KM ${km}`;
   }
 
-  if (!placa || placa.length < 7) {
-    alert('Placa invalida.');
-    return;
-  }
-
   let infracaoObj = null;
   if (infracaoDataInput.value) {
     try {
       infracaoObj = JSON.parse(infracaoDataInput.value);
     } catch (err) {
       alert('Dados da infracao invalidos. Selecione novamente.');
-      return;
+      return null;
     }
   } else {
     const mNome = document.getElementById('pat_manual_infra_nome')?.value.trim();
@@ -437,10 +586,60 @@ function pat_salvarVeiculo() {
 
   if (!infracaoObj) {
     alert('Selecione a infracao.');
+    return null;
+  }
+
+  return { data, hora, local, obs, infracao: infracaoObj };
+}
+
+function pat_adicionarRegistro(placa, context) {
+  if (!pat_validarFormatoPlaca(placa) || !context) return false;
+
+  pat_getStore()?.add?.({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    placa,
+    data: context.data,
+    hora: context.hora,
+    local: context.local,
+    obs: context.obs,
+    infracao: context.infracao
+  });
+
+  return true;
+}
+
+function pat_salvarLotePlacas() {
+  if (!PAT_LOTE_PLACAS.length) {
+    alert('Nenhuma placa foi capturada no lote.');
     return;
   }
 
-  pat_getStore()?.add?.({ id: Date.now(), placa, data, hora, local, obs, infracao: infracaoObj });
+  const context = pat_coletarContextoFormulario();
+  if (!context) return;
+
+  PAT_LOTE_PLACAS.forEach((placa) => pat_adicionarRegistro(placa, context));
+  pat_renderizarLista();
+  pat_setBoxVisible('pat_lista_card', true);
+  pat_setBoxVisible('pat_result_area', false);
+  pat_limparLotePlacas();
+  pat_resetFormulario();
+  if (navigator.vibrate) navigator.vibrate([100, 40, 100, 40, 100]);
+}
+
+function pat_salvarVeiculo() {
+  const placaInput = document.getElementById('pat_placa');
+  if (!placaInput) return;
+  const placa = placaInput.value.trim();
+
+  if (!pat_validarFormatoPlaca(placa)) {
+    alert('Placa invalida.');
+    return;
+  }
+
+  const context = pat_coletarContextoFormulario();
+  if (!context) return;
+
+  pat_adicionarRegistro(placa, context);
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', true);
   pat_setBoxVisible('pat_result_area', false);
@@ -617,5 +816,9 @@ window.pat_setModoLocal = pat_setModoLocal;
 window.pat_obterGPS = pat_obterGPS;
 window.pat_simularOCR = pat_simularOCR;
 window.pat_iniciarVozPlaca = pat_iniciarVozPlaca;
+window.pat_iniciarVozLotePlacas = pat_iniciarVozLotePlacas;
+window.pat_salvarLotePlacas = pat_salvarLotePlacas;
+window.pat_limparLotePlacas = pat_limparLotePlacas;
+window.pat_removerPlacaLote = pat_removerPlacaLote;
 
 document.addEventListener('DOMContentLoaded', pat_init);
