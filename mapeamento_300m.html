@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapeamento 300m - PMRV SC</title>
+    <link rel="stylesheet" href="css/inlined.css">
+    <style>
+        :root {
+            --primary: #f97316;
+            --bg: #050505;
+            --surface: #0f0f0f;
+            --text: #ffffff;
+            --border: rgba(245, 130, 32, 0.2);
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-box {
+            background: var(--surface);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+        @media (max-width: 700px) {
+            .search-box { grid-template-columns: 1fr; }
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .ref-card {
+            background: #121212;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .ref-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            opacity: 0.5;
+        }
+        .ref-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            transition: all 0.2s;
+        }
+        .ref-km {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+        .ref-desc {
+            font-size: 14px;
+            color: #efefef;
+            margin: 12px 0;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        .ref-meta {
+            font-size: 11px;
+            color: #777;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #222;
+            padding-top: 10px;
+        }
+        .btn {
+            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: white;
+            font-weight: 700;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: black; border: none; }
+        .btn-primary:hover { background: #fb923c; }
+        .btn-excel { background: #166534 !important; border-color: #15803d !important; }
+        .btn-excel:hover { background: #15803d !important; }
+        
+        select, input {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: white;
+            padding: 14px;
+            border-radius: 10px;
+            width: 100%;
+            font-size: 15px;
+        }
+        select:focus, input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        .hidden { display: none; }
+        .badge {
+            font-size: 10px;
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+        }
+    </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🔍 Mapeamento Operacional 300m</h1>
+        <p>Referências Detalhadas e POIs Georreferenciados - Grande Floripa</p>
+    </div>
+
+    <div class="search-box">
+        <div>
+            <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--primary); text-transform:uppercase;">Rodovia SC</label>
+            <select id="sel-rodovia">
+                <option value="">Selecione uma rodovia...</option>
+                <option value="SC-401">SC-401 (Norte / Sul)</option>
+                <option value="SC-403">SC-403 (Ingleses)</option>
+                <option value="SC-405">SC-405 (Rio Tavares / Campeche)</option>
+                <option value="SC-406">SC-406 (Leste / Sul)</option>
+                <option value="SC-404">SC-404 (Itacorubi / Lagoa)</option>
+                <option value="SC-281">SC-281 (São José / Ant. Carlos)</option>
+                <option value="SC-407">SC-407 (Biguaçu / Ant. Carlos)</option>
+                <option value="SC-408">SC-408 (Antônio Carlos)</option>
+                <option value="SC-410">SC-410 (Tijucas / Canelinha)</option>
+                <option value="SC-108">SC-108 (Angelina / Rancho Queimado)</option>
+                <option value="SC-435">SC-435 (Águas Mornas / São Bonifácio)</option>
+            </select>
+        </div>
+        <div>
+            <label style="display:block; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--primary); text-transform:uppercase;">KM Específico</label>
+            <input type="text" id="inp-km" placeholder="Ex: 4.500" inputmode="decimal">
+        </div>
+        <button class="btn btn-primary" onclick="buscar()">GERAR MAPA</button>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
+        <div id="status-msg" style="font-size: 14px; color: #aaa; font-weight: 500;">Aguardando parâmetros...</div>
+        <button id="btn-export" class="btn btn-excel hidden" onclick="exportarExcel()">📊 SALVAR RELATÓRIO EXCEL</button>
+    </div>
+
+    <div id="results" class="results-grid"></div>
+
+    <script src="data/referencias_grande_florianopolis_300m.js"></script>
+
+    <script>
+        let currentData = [];
+
+        function buscar() {
+            const rod = document.getElementById('sel-rodovia').value;
+            const kmStr = document.getElementById('inp-km').value.replace(',', '.');
+            const km = kmStr ? parseFloat(kmStr) : -1;
+            const container = document.getElementById('results');
+            const status = document.getElementById('status-msg');
+            const btnExport = document.getElementById('btn-export');
+
+            if (!rod) {
+                alert('Por favor, selecione a rodovia.');
+                return;
+            }
+
+            const base = window.REFERENCIAS_300M?.rows || [];
+            let filtered = base.filter(r => r.rodovia === rod);
+
+            if (km >= 0) {
+                // Filtra num raio de 2km para dar contexto
+                filtered = filtered.filter(r => r.km >= (km - 1.0) && r.km <= (km + 1.0));
+                // Ordena por proximidade ao KM desejado
+                filtered.sort((a, b) => Math.abs(a.km - km) - Math.abs(b.km - km));
+            } else {
+                filtered.sort((a, b) => a.km - b.km);
+            }
+
+            currentData = filtered;
+            container.innerHTML = '';
+
+            if (filtered.length === 0) {
+                status.innerHTML = '❌ Nenhum marco encontrado para este trecho.';
+                btnExport.classList.add('hidden');
+                return;
+            }
+
+            status.innerHTML = `✅ <b>${filtered.length}</b> marcos encontrados para <b>${rod}</b>.`;
+            btnExport.classList.remove('hidden');
+
+            filtered.forEach(ref => {
+                const card = document.createElement('div');
+                card.className = 'ref-card';
+                card.innerHTML = `
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="ref-km">${ref.rodovia} KM ${ref.km_label}</span>
+                            <span class="badge">300M</span>
+                        </div>
+                        <div class="ref-desc">${ref.descricao}</div>
+                    </div>
+                    <div>
+                        <div class="ref-meta">
+                            <span>GPS: ${ref.latitude}, ${ref.longitude}</span>
+                        </div>
+                        <button class="btn btn-sm" style="width:100%; margin-top:12px; font-size:13px;" 
+                                onclick="window.open('${ref.google_maps}', '_blank')">🌍 ABRIR NO GOOGLE MAPS</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function exportarExcel() {
+            if (currentData.length === 0) return;
+            
+            const exportRows = currentData.map(r => ({
+                'Rodovia': r.rodovia,
+                'Quilometragem': r.km_label,
+                'Descrição Detalhada': r.descricao,
+                'Latitude': r.latitude,
+                'Longitude': r.longitude,
+                'Link Google Maps': r.google_maps
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Mapeamento 300m");
+            
+            const name = `Mapeamento_${currentData[0].rodovia}_300m.xlsx`;
+            XLSX.writeFile(wb, name);
+        }
+
+        document.getElementById('inp-km').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscar();
+        });
+    </script>
+</body>
+</html>
