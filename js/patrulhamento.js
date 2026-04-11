@@ -31,38 +31,39 @@ const PAT_QUICK_INFRACOES = {
 };
 
 const PAT_VOICE_TOKEN_MAP = {
-  a: 'A', ah: 'A',
-  be: 'B', b: 'B', bi: 'B',
-  ce: 'C', c: 'C', ci: 'C',
-  de: 'D', d: 'D', di: 'D',
-  e: 'E',
-  efe: 'F', f: 'F',
-  ge: 'G', g: 'G', gue: 'G',
-  aga: 'H', ha: 'H', h: 'H',
-  i: 'I', ih: 'I',
-  jota: 'J', j: 'J',
-  ka: 'K', ca: 'K', k: 'K',
-  ele: 'L', l: 'L',
-  eme: 'M', m: 'M',
-  ene: 'N', n: 'N',
-  o: 'O', oh: 'O',
-  pe: 'P', p: 'P',
-  que: 'Q', q: 'Q',
-  erre: 'R', r: 'R',
-  esse: 'S', s: 'S',
-  te: 'T', t: 'T',
-  u: 'U',
-  ve: 'V', v: 'V',
-  dobleve: 'W', dabliu: 'W', w: 'W',
-  xis: 'X', x: 'X',
-  ipsilon: 'Y', ypsilon: 'Y', y: 'Y',
-  ze: 'Z', z: 'Z',
+  // Letras - Pronúncias e Alfabeto Fonético (Português/NATO)
+  a: 'A', ah: 'A', abe: 'A', alfa: 'A', amor: 'A', abelha: 'A', ave: 'A',
+  be: 'B', b: 'B', bi: 'B', bravo: 'B', bola: 'B', banana: 'B', ba: 'B',
+  ce: 'C', c: 'C', ci: 'C', charlie: 'C', casa: 'C', cavalo: 'C', ca: 'C',
+  de: 'D', d: 'D', di: 'D', delta: 'D', dado: 'D', dedo: 'D', da: 'D',
+  e: 'E', echo: 'E', escola: 'E', elefante: 'E', eva: 'E',
+  efe: 'F', f: 'F', foxtrot: 'F', faca: 'F', fogo: 'F', fe: 'F',
+  ge: 'G', g: 'G', gue: 'G', golf: 'G', gato: 'G', gelo: 'G',
+  aga: 'H', ha: 'H', h: 'H', hotel: 'H', hipopotamo: 'H', hoje: 'H',
+  i: 'I', ih: 'I', india: 'I', igreja: 'I', ilha: 'I',
+  jota: 'J', j: 'J', juliet: 'J', jacare: 'J', jogo: 'J',
+  ka: 'K', k: 'K', kilo: 'K', kiwi: 'K',
+  ele: 'L', l: 'L', el: 'L', lima: 'L', leite: 'L', lua: 'L',
+  eme: 'M', m: 'M', mike: 'M', macaco: 'M', macado: 'M', maria: 'M', mapa: 'M',
+  ene: 'N', n: 'N', november: 'N', navio: 'N', nuvem: 'N', nada: 'N',
+  o: 'O', oh: 'O', oscar: 'O', ovo: 'O', olho: 'O',
+  pe: 'P', p: 'P', papa: 'P', pato: 'P', pipa: 'P', para: 'P',
+  que: 'Q', q: 'Q', quebec: 'Q', queijo: 'Q', quero: 'Q',
+  erre: 'R', r: 'R', romeo: 'R', rato: 'R', rosa: 'R',
+  esse: 'S', s: 'S', sierra: 'S', sapo: 'S', sol: 'S',
+  te: 'T', t: 'T', ti: 'T', tango: 'T', tatu: 'T', tomate: 'T',
+  u: 'U', uniform: 'U', uva: 'U', urso: 'U', uniao: 'U',
+  ve: 'V', v: 'V', victor: 'V', vaca: 'V', vela: 'V', vida: 'V',
+  dobleve: 'W', dabliu: 'W', w: 'W', whiskey: 'W',
+  xis: 'X', x: 'X', xray: 'X', xadrez: 'X', xicara: 'X',
+  ipsilon: 'Y', ypsilon: 'Y', y: 'Y', yankee: 'Y',
+  ze: 'Z', z: 'Z', zulu: 'Z', zebra: 'Z',
+  // Números
   zero: '0',
   um: '1', uma: '1',
   dois: '2',
   tres: '3',
-  quatro: '4',
-  for: '4',
+  quatro: '4', for: '4',
   cinco: '5',
   seis: '6', meia: '6',
   sete: '7',
@@ -72,8 +73,10 @@ const PAT_VOICE_TOKEN_MAP = {
 
 const PAT_VOICE_IGNORE_TOKENS = new Set([
   'placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'nÃºmero',
-  'nova', 'novo', 'de', 'da', 'do', 'tipo', 'formato'
+  'nova', 'novo', 'tipo', 'formato'
 ]);
+
+const PAT_VOICE_CONNECTORS = new Set(['de', 'da', 'do']);
 
 function pat_escapeHtml(value) {
   return String(value || '')
@@ -255,9 +258,31 @@ function pat_converterFalaEmPlaca(texto) {
 
   let convertido = '';
 
-  tokens.forEach(token => {
-    convertido += pat_tokenParaChar(token);
-  });
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    const char = pat_tokenParaChar(token);
+    if (!char) continue;
+
+    // Lógica para evitar duplicidade fonética (ex: "M de macaco" ou "M macaco")
+    // Se o próximo token (ou o após o conector) resultar no mesmo caractere, nós o pulamos.
+    let skipCount = 0;
+    if (i + 1 < tokens.length) {
+      const nextToken = tokens[i + 1];
+      if (PAT_VOICE_CONNECTORS.has(nextToken)) {
+        if (i + 2 < tokens.length && pat_tokenParaChar(tokens[i + 2]) === char) {
+          skipCount = 2; // Pula o conector e a palavra fonética
+        }
+      } else if (pat_tokenParaChar(nextToken) === char && (token.length > 1 || nextToken.length > 1)) {
+        // Se não houver conector, mas um dos tokens for uma palavra longa (fonética), pula o segundo.
+        // Ex: "M macaco" ou "macaco M" -> resulta em apenas um M.
+        // Evitamos pular "A A" pois pode ser uma placa AAA.
+        skipCount = 1;
+      }
+    }
+
+    convertido += char;
+    i += skipCount;
+  }
 
   const match = convertido.match(/[A-Z]{3}[0-9][A-Z0-9][0-9]{2}/);
   if (match) return match[0];
@@ -313,7 +338,25 @@ function pat_extrairPlacasDeLote(texto) {
     for (let j = i + 1; j < tokens.length && valor.length < 7; j++) {
       const token = tokens[j];
       if (token === 'placa' || token === 'terminou') break;
-      valor += pat_tokenParaChar(token);
+      
+      const char = pat_tokenParaChar(token);
+      if (!char) continue;
+
+      // Lógica para evitar duplicidade fonética (ex: "M de macaco")
+      let skipCount = 0;
+      if (j + 1 < tokens.length) {
+        const nextToken = tokens[j + 1];
+        if (PAT_VOICE_CONNECTORS.has(nextToken)) {
+          if (j + 2 < tokens.length && pat_tokenParaChar(tokens[j + 2]) === char) {
+            skipCount = 2;
+          }
+        } else if (pat_tokenParaChar(nextToken) === char && (token.length > 1 || nextToken.length > 1)) {
+          skipCount = 1;
+        }
+      }
+
+      valor += char;
+      j += skipCount;
     }
 
     const placa = valor.replace(/[^A-Z0-9]/g, '').slice(0, 7);
