@@ -1,13 +1,8 @@
 /**
- * Modulo: Referencias de Rodovias
- * Base operacional da Grande Florianopolis gerada a cada 200 m.
+ * Modulo: Referencias de Rodovias - Base Local 100m
  */
 
-const REF_BASE_URL = 'data/referencias_grande_florianopolis_200m.json';
-
 let RODOVIAS_REF_DATA = {};
-let REF_ROADS_META = {};
-let REF_DATA_PROMISE = null;
 
 function ref_formatarKm(km) {
     return Number(km || 0).toFixed(3).replace('.', ',');
@@ -17,49 +12,19 @@ function ref_formatarRodoviaKm(rodovia, km) {
     return `Rodovia ${rodovia} km ${ref_formatarKm(km)}`;
 }
 
-function ref_obterTituloRodovia(roadMeta, rodovia) {
-    return roadMeta?.trecho || `Rodovia ${rodovia}`;
-}
+function ref_normalizarBase() {
+    const data = window.GRANDE_FLORIANOPOLIS_REFERENCIAS_100M;
+    if (!data || !data.rows) return {};
 
-function ref_obterDescricaoPonto(ref) {
-    if (!ref) return '';
-    return ref.nome_local || ref.descricao || `Marco ${ref.marco || ref_formatarKm(ref.km)}`;
-}
-
-function ref_normalizarBase(data) {
     const grouped = {};
-    const roads = Array.isArray(data?.roads) ? data.roads : [];
-    const rows = Array.isArray(data?.rows) ? data.rows : [];
-
-    roads.forEach(road => {
-        grouped[road.rodovia] = {
-            nome: ref_obterTituloRodovia(road, road.rodovia),
-            kmInicial: Number(road.km_inicial || 0),
-            kmFinal: Number(road.km_final || 0),
-            observacoes: road.observacoes || '',
-            refs: []
-        };
-        REF_ROADS_META[road.rodovia] = road;
-    });
-
-    rows.forEach(row => {
+    data.rows.forEach(row => {
         if (!grouped[row.rodovia]) {
             grouped[row.rodovia] = {
                 nome: `Rodovia ${row.rodovia}`,
-                kmInicial: 0,
-                kmFinal: Number(row.km || 0),
-                observacoes: row.observacoes || '',
                 refs: []
             };
         }
-
-        grouped[row.rodovia].refs.push({
-            km: Number(row.km || 0),
-            desc: ref_obterDescricaoPonto(row),
-            tipo: row.tipo || 'referencia',
-            marco: row.marco || '',
-            observacoes: row.observacoes || ''
-        });
+        grouped[row.rodovia].refs.push(row);
     });
 
     Object.values(grouped).forEach(road => {
@@ -69,42 +34,23 @@ function ref_normalizarBase(data) {
     return grouped;
 }
 
-async function ref_carregarBase() {
-    if (Object.keys(RODOVIAS_REF_DATA).length > 0) {
-        return RODOVIAS_REF_DATA;
+function ref_localizar() {
+    if (Object.keys(RODOVIAS_REF_DATA).length === 0) {
+        RODOVIAS_REF_DATA = ref_normalizarBase();
     }
-
-    if (!REF_DATA_PROMISE) {
-        REF_DATA_PROMISE = (async () => {
-            const data = PMRV.dataManager?.loadResource
-                ? await PMRV.dataManager.loadResource('referencias_grande_florianopolis_200m', REF_BASE_URL)
-                : await fetch(REF_BASE_URL, { cache: 'no-cache' }).then(resp => resp.json());
-
-            RODOVIAS_REF_DATA = ref_normalizarBase(data);
-            window.RODOVIAS_REF_DATA = RODOVIAS_REF_DATA;
-            window.REF_ROADS_META = REF_ROADS_META;
-            return RODOVIAS_REF_DATA;
-        })();
-    }
-
-    return REF_DATA_PROMISE;
-}
-
-async function ref_localizar() {
-    await ref_carregarBase();
 
     const rodKey = document.getElementById('ref_rodovia').value;
     const rawVal = document.getElementById('ref_km').value.replace(',', '.');
     const kmVal = parseFloat(rawVal);
 
     if (isNaN(kmVal)) {
-        alert('Por favor, digite um KM valido.');
+        alert('Por favor, digite um KM válido.');
         return;
     }
 
     const rodData = RODOVIAS_REF_DATA[rodKey];
     if (!rodData) {
-        alert('Dados desta rodovia ainda nao cadastrados.');
+        alert('Dados desta rodovia ainda não cadastrados na base de 100m.');
         return;
     }
 
@@ -128,53 +74,49 @@ async function ref_localizar() {
 
     let msgDist = '';
     let descRef = '';
+    let gmapsLink = '';
 
-    const diffAnt = anterior ? (kmVal - anterior.km) : Number.POSITIVE_INFINITY;
+    const diffAnt = anterior ? (kmVal - anterior.km) : Infinity;
 
-    if (anterior && Math.abs(diffAnt) < 0.010) {
-        descRef = ref_obterDescricaoPonto(anterior);
-        msgDist = 'Voce esta aproximadamente neste marco operacional da rodovia.';
+    if (anterior && Math.abs(diffAnt) < 0.005) {
+        descRef = anterior.descricao;
+        msgDist = 'Você está exatamente neste marco operacional (100m).';
+        gmapsLink = anterior.google_maps;
     } else if (anterior && proximo) {
         const metrosAnt = Math.round(diffAnt * 1000);
         const metrosProx = Math.round((proximo.km - kmVal) * 1000);
-        descRef = `${ref_obterDescricaoPonto(anterior)} <-> ${ref_obterDescricaoPonto(proximo)}`;
-        msgDist = `KM aproximado pelo eixo da rodovia: ${metrosAnt} m apos ${ref_obterDescricaoPonto(anterior)} e ${metrosProx} m antes de ${ref_obterDescricaoPonto(proximo)}.`;
+        descRef = `${anterior.descricao} <-> ${proximo.descricao}`;
+        msgDist = `KM estimado: ${metrosAnt} m após o marco anterior e ${metrosProx} m antes do próximo marco.`;
+        gmapsLink = anterior.google_maps; // Usa o marco anterior como referência de mapa
     } else if (anterior) {
         const metros = Math.round(diffAnt * 1000);
-        descRef = ref_obterDescricaoPonto(anterior);
-        msgDist = `KM aproximado pelo eixo da rodovia: ${metros} m apos a ultima referencia cadastrada.`;
+        descRef = anterior.descricao;
+        msgDist = `KM estimado: ${metros} m após o último marco cadastrado.`;
+        gmapsLink = anterior.google_maps;
     } else if (proximo) {
         const metros = Math.round((proximo.km - kmVal) * 1000);
-        descRef = ref_obterDescricaoPonto(proximo);
-        msgDist = `KM aproximado pelo eixo da rodovia: ${metros} m antes da primeira referencia cadastrada.`;
+        descRef = proximo.descricao;
+        msgDist = `KM estimado: ${metros} m antes do primeiro marco cadastrado.`;
+        gmapsLink = proximo.google_maps;
     }
 
-    document.getElementById('ref_res_desc').innerHTML = descRef;
-    document.getElementById('ref_res_dist').innerHTML = msgDist;
-
-    const fotoWrap = document.getElementById('ref_res_foto_wrap');
-    if (fotoWrap) {
-        fotoWrap.classList.add('hidden');
+    document.getElementById('ref_res_desc').innerHTML = `<div style="font-weight:700; color:var(--text);">${descRef}</div>`;
+    
+    let distHtml = `<div style="margin-top:8px;">${msgDist}</div>`;
+    if (gmapsLink) {
+        distHtml += `<button class="btn btn-sm btn-primary" style="margin-top:12px; width:100%;" onclick="window.open('${gmapsLink}', '_blank')">📍 Ver Localização (Google Maps)</button>`;
     }
+    document.getElementById('ref_res_dist').innerHTML = distHtml;
 
-    const roadMeta = REF_ROADS_META[rodKey];
-    const observacoes = [
-        `Trecho operacional: km ${ref_formatarKm(rodData.kmInicial)} ao km ${ref_formatarKm(rodData.kmFinal)}.`,
-        roadMeta?.observacoes || rodData.observacoes || ''
-    ].filter(Boolean).join(' ');
-
-    document.getElementById('ref_res_obs').innerText = observacoes;
+    document.getElementById('ref_res_obs').innerText = 'Base georreferenciada a cada 100 metros (Grande Florianópolis).';
 
     resBox.classList.remove('hidden');
     resBox.scrollIntoView({ behavior: 'smooth' });
 }
 
 window.RODOVIAS_REF_DATA = RODOVIAS_REF_DATA;
-window.ref_carregarBase = ref_carregarBase;
 window.ref_localizar = ref_localizar;
 
 document.addEventListener('DOMContentLoaded', () => {
-    ref_carregarBase().catch(err => {
-        console.error('Falha ao carregar base de referencias de rodovias:', err);
-    });
+    // A base agora é carregada via script no index.html (window.GRANDE_FLORIANOPOLIS_REFERENCIAS_100M)
 });
