@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Referências 100m - PMRV SC</title>
+    <link rel="stylesheet" href="css/inlined.css">
+    <style>
+        :root {
+            --primary: #f97316;
+            --bg: #050505;
+            --surface: #0f0f0f;
+            --text: #ffffff;
+            --border: rgba(245, 130, 32, 0.2);
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-box {
+            background: var(--surface);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+        @media (max-width: 600px) {
+            .search-box { grid-template-columns: 1fr; }
+        }
+        .results-container {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .ref-card {
+            background: #151515;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            transition: transform 0.2s;
+        }
+        .ref-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+        .ref-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .ref-km {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+        .ref-desc {
+            font-size: 14px;
+            color: #ddd;
+            line-height: 1.4;
+        }
+        .ref-coords {
+            font-family: monospace;
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-excel {
+            background: #166534 !important;
+            border-color: #15803d !important;
+        }
+        select, input {
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .btn {
+            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: white;
+            font-weight: 700;
+            text-align: center;
+        }
+        .btn-primary { background: var(--primary); color: black; border: none; }
+        .hidden { display: none; }
+    </style>
+    <!-- SheetJS para exportação Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📍 Referências de 100 Metros</h1>
+        <p>Base Georreferenciada da Grande Florianópolis - PMRV SC</p>
+    </div>
+
+    <div class="search-box">
+        <div>
+            <label style="display:block; margin-bottom:5px; font-size:12px; color:var(--primary);">RODOVIA</label>
+            <select id="sel-rodovia">
+                <option value="">Selecione...</option>
+                <option value="SC-108">SC-108</option>
+                <option value="SC-281">SC-281</option>
+                <option value="SC-400">SC-400</option>
+                <option value="SC-401">SC-401</option>
+                <option value="SC-402">SC-402</option>
+                <option value="SC-403">SC-403</option>
+                <option value="SC-404">SC-404</option>
+                <option value="SC-405">SC-405</option>
+                <option value="SC-406">SC-406</option>
+                <option value="SC-407">SC-407</option>
+                <option value="SC-408">SC-408</option>
+                <option value="SC-410">SC-410</option>
+                <option value="SC-435">SC-435</option>
+            </select>
+        </div>
+        <div>
+            <label style="display:block; margin-bottom:5px; font-size:12px; color:var(--primary);">KM (OPCIONAL)</label>
+            <input type="text" id="inp-km" placeholder="Ex: 12.500" inputmode="decimal">
+        </div>
+        <button class="btn btn-primary" onclick="buscar()">CONSULTAR</button>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div id="status-msg" style="font-size: 13px; color: #888;">Selecione os filtros acima.</div>
+        <button id="btn-export" class="btn btn-excel hidden" onclick="exportarExcel()">📊 SALVAR EM EXCEL</button>
+    </div>
+
+    <div id="results" class="results-container"></div>
+
+    <!-- Base de dados de 100m gerada anteriormente -->
+    <script src="data/referencias_grande_florianopolis_100m.js"></script>
+
+    <script>
+        let lastResults = [];
+
+        function buscar() {
+            const rodovia = document.getElementById('sel-rodovia').value;
+            const kmStr = document.getElementById('inp-km').value.replace(',', '.');
+            const km = kmStr ? parseFloat(kmStr) : -1;
+            const container = document.getElementById('results');
+            const status = document.getElementById('status-msg');
+            const btnExport = document.getElementById('btn-export');
+
+            if (!rodovia) {
+                alert('Selecione uma rodovia.');
+                return;
+            }
+
+            const base = window.GRANDE_FLORIANOPOLIS_REFERENCIAS_100M?.rows || [];
+            let filtered = base.filter(r => r.rodovia === rodovia);
+
+            if (km >= 0) {
+                // Filtra raio de 3km para busca específica
+                filtered = filtered.filter(r => r.km >= (km - 1.5) && r.km <= (km + 1.5));
+                filtered.sort((a, b) => Math.abs(a.km - km) - Math.abs(b.km - km));
+            } else {
+                filtered.sort((a, b) => a.km - b.km);
+            }
+
+            lastResults = filtered;
+            container.innerHTML = '';
+
+            if (filtered.length === 0) {
+                status.innerText = 'Nenhum registro encontrado.';
+                btnExport.classList.add('hidden');
+                return;
+            }
+
+            status.innerText = `Encontrados ${filtered.length} marcos de 100m.`;
+            btnExport.classList.remove('hidden');
+
+            filtered.forEach(ref => {
+                const card = document.createElement('div');
+                card.className = 'ref-card';
+                card.innerHTML = `
+                    <div class="ref-header">
+                        <span class="ref-km">${ref.rodovia} KM ${ref.km_label}</span>
+                        <span style="font-size:10px; background:rgba(249,115,22,0.1); padding:4px 8px; border-radius:4px;">MARCO 100M</span>
+                    </div>
+                    <div class="ref-desc">${ref.descricao}</div>
+                    <div class="ref-coords">LAT: ${ref.latitude} | LON: ${ref.longitude}</div>
+                    <div class="actions">
+                        <button class="btn btn-sm" style="width:100%;" onclick="window.open('${ref.google_maps}', '_blank')">📍 Google Maps</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function exportarExcel() {
+            if (lastResults.length === 0) return;
+
+            const dataToExport = lastResults.map(r => ({
+                'Rodovia': r.rodovia,
+                'KM': r.km_label,
+                'Marco': r.marco,
+                'Descrição / POI': r.descricao,
+                'Latitude': r.latitude,
+                'Longitude': r.longitude,
+                'Link Google Maps': r.google_maps
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Referências PMRV");
+
+            const filename = `Referencias_${lastResults[0].rodovia}_100m.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        // Permitir Enter no campo de KM
+        document.getElementById('inp-km').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscar();
+        });
+    </script>
+</body>
+</html>
