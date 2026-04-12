@@ -1652,7 +1652,7 @@ function v360closeModal(){
 }
 
 function v360closeModalOnBackdrop(event) {
-  if (event.target.id === 'v360-overlay') v360closeModal();
+  if (event.target === event.declarativeTarget) v360closeModal();
 }
 
 function v360openEdit(id){

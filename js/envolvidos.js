@@ -29,22 +29,6 @@ function env_corrigirRelato(texto) {
 
   if (!valor) return '';
 
-  const pontuacoesFaladas = [
-    [/\bponto final\b/gi, '.'],
-    [/\bponto e virgula\b/gi, ';'],
-    [/\bdois pontos\b/gi, ':'],
-    [/\bponto de interrogacao\b/gi, '?'],
-    [/\bponto de exclamacao\b/gi, '!'],
-    [/\binterrogacao\b/gi, '?'],
-    [/\bexclamacao\b/gi, '!'],
-    [/\bvirgula\b/gi, ','],
-    [/\bponto\b/gi, '.']
-  ];
-
-  pontuacoesFaladas.forEach(([pattern, replacement]) => {
-    valor = valor.replace(pattern, replacement);
-  });
-
   const correcoes = [
     [/\bnao\b/gi, 'não'],
     [/\bveiculo\b/gi, 'veículo'],

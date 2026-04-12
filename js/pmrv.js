@@ -302,4 +302,6 @@ function pmrv_limpar() {
 
 window.pmrv_init = pmrv_init;
 
+document.addEventListener('DOMContentLoaded', pmrv_init);
+
 

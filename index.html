@@ -98,7 +98,7 @@
         </button>
 
         <button class="menu-card" data-color="blue" data-click="go('referencias-proximas')" aria-label="Abrir Referências Próximas (100m)">
-          <div class="menu-icon"><img src="refe.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-rel" /></div>
+          <div class="menu-icon">📍</div>
           <div class="menu-title">Referências de 100m</div>
           <div class="menu-desc">Marcos georreferenciados na Grande Floripa</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -126,7 +126,7 @@
         </button>
 
         <button class="menu-card" data-color="purple" data-click="go('croqui')" aria-label="Abrir Ferramenta de Croqui Técnico">
-          <div class="menu-icon"><img src="img/Croqui.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-croqui" /></div>
+          <div class="menu-icon"><img src="Croqui.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-croqui" /></div>
           <div class="menu-title">Croqui</div>
           <div class="menu-desc">Esboço técnico do local do acidente</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -139,9 +139,9 @@
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
-        <button class="menu-card" data-color="green" data-click="go('docs')" aria-label="Abrir CTB Documentos">
+        <button class="menu-card" data-color="green" data-click="go('docs')" aria-label="Abrir CTB Brasileiro">
           <div class="menu-icon"><img src="ctb.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-ctb" /></div>
-          <div class="menu-title">CTB Documentos</div>
+          <div class="menu-title">CTB Brasileiro</div>
           <div class="menu-desc">Consulta rápida sobre regras, documentos e fiscalização</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
@@ -660,15 +660,19 @@
         <!-- Tabs de vista -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
           <button class="dan-tab active" id="dan-tab-frontal"  data-click="danMudarVista('frontal')">
+            <img class="dan-tab-thumb" src="carro_frente_nobg.png" alt="Frente" data-click-stop="core_zoomImage(this.src)">
             Frontal
           </button>
           <button class="dan-tab" id="dan-tab-traseira" data-click="danMudarVista('traseira')">
+            <img class="dan-tab-thumb" src="carro_tras_nobg.png" alt="Traseira" data-click-stop="core_zoomImage(this.src)">
             Traseira
           </button>
           <button class="dan-tab" id="dan-tab-esquerda" data-click="danMudarVista('esquerda')">
+            <img class="dan-tab-thumb" src="carro_esquerda_nobg.png" alt="Esquerda" data-click-stop="core_zoomImage(this.src)">
             Lateral esquerda
           </button>
           <button class="dan-tab" id="dan-tab-direita"  data-click="danMudarVista('direita')">
+            <img class="dan-tab-thumb" src="carro_direita_nobg.png" alt="Direita" data-click-stop="core_zoomImage(this.src)">
             Lateral direita
           </button>
         </div>
@@ -750,15 +754,19 @@
 
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
           <button class="dan-tab active" id="v360-tab-frente"   data-click="v360switchTab(this,'frente')">
+            <img class="dan-tab-thumb" src="img/extracted_8.png" id="dan-thumb-frente" alt="Frente" data-click-stop="core_zoomImage(this.src)">
             Frente
           </button>
           <button class="dan-tab" id="v360-tab-tras" data-click="v360switchTab(this,'tras')">
+            <img class="dan-tab-thumb" src="img/extracted_9.png" id="dan-thumb-tras" alt="Traseira" data-click-stop="core_zoomImage(this.src)">
             Traseira
           </button>
           <button class="dan-tab" id="v360-tab-direita" data-click="v360switchTab(this,'direita')">
+            <img class="dan-tab-thumb" src="img/extracted_10.png" id="dan-thumb-direita" alt="Direita" data-click-stop="core_zoomImage(this.src)">
             Lateral direita
           </button>
           <button class="dan-tab" id="v360-tab-esquerda" data-click="v360switchTab(this,'esquerda')">
+            <img class="dan-tab-thumb" src="img/extracted_11.png" id="dan-thumb-esquerda" alt="Esquerda" data-click-stop="core_zoomImage(this.src)">
             Lateral esquerda
           </button>
         </div>
@@ -1108,10 +1116,6 @@
 
         <div id="pat_local_manual_box" class="form-field hidden">
           <label class="field-label">Rodovia e KM</label>
-          <div class="flex gap-8" style="margin-bottom:8px;">
-            <button type="button" class="btn btn-sm" id="btn-pat-local-voz" data-click="pat_iniciarVozLocal()">Voz local</button>
-            <small style="color:var(--muted);">Diga: SC 401 quilometro 33</small>
-          </div>
           <div class="form-row form-row-2">
             <div class="form-field">
               <select id="pat_manual_rodovia">
@@ -1191,27 +1195,6 @@
           <textarea id="pat_obs" rows="3" placeholder="Anote detalhes úteis para o relatório."></textarea>
         </div>
 
-        <div class="form-field">
-          <label class="field-label">Produtividade</label>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03);">
-            <div style="display:flex;flex-direction:column;gap:4px;">
-              <strong id="pat_draft_status" style="font-size:12px;color:#fff;">Rascunho pronto.</strong>
-              <span id="pat_feedback" style="font-size:11px;color:var(--muted);">Use favoritos, histórico e autosave para agilizar o turno.</span>
-            </div>
-            <button type="button" class="btn btn-sm" data-click="pat_salvarFavoritoAtual()">⭐ Salvar favorito</button>
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label class="field-label">Favoritos operacionais</label>
-          <div id="pat_favoritos_lista" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-        </div>
-
-        <div class="form-field">
-          <label class="field-label">Histórico recente</label>
-          <div id="pat_recentes_lista" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-        </div>
-
         <button class="btn btn-primary btn-full btn-lg" data-click="pat_salvarVeiculo()">+ Adicionar registro</button>
       </div>
 
@@ -1224,7 +1207,6 @@
           </div>
           <button class="btn btn-primary" data-click="pat_encerrarPatrulhamento()">🏁 Patrulhamento terminando</button>
         </div>
-        <div id="pat_stats_box" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px;"></div>
         <div id="pat_lista_container"></div>
         <div class="result-actions">
           <button class="btn btn-danger" data-click="pat_limparTudo()">🗑 Limpar lote</button>
@@ -1236,7 +1218,6 @@
         <p class="result-label">Resumo final do patrulhamento</p>
         <div class="result-text" id="pat_result_text"></div>
         <div class="result-actions">
-          <button class="btn" data-click="pat_gerarPdf()">📄 Gerar PDF</button>
           <button class="btn btn-success" data-click="pat_baixarTxt()">📝 Gerar TXT</button>
           <button class="btn btn-whats" data-click="whatsapp('pat_result_text')">📲 WhatsApp</button>
         </div>
@@ -1384,7 +1365,7 @@
       <div id="pes-content-img" class="hidden">
         <div class="sub-box" style="margin-bottom:12px;">
           <div class="result-label">Guia visual por tipo</div>
-          <div style="font-size:12px;color:var(--label);">Referência rápida em perfil lateral para conferir a configuração visual e a quantidade de eixos antes do enquadramento.</div>
+          <div style="font-size:12px;color:var(--label);">Referência rápida do tipo de caminhão e quantidade de eixos para apoio no enquadramento de peso.</div>
         </div>
 
         <div class="pes-axle-grid">
@@ -1394,17 +1375,13 @@
               <span class="pes-axle-tag">2 eixos</span>
             </div>
             <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-simple">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Caminhão toco em vista lateral">
-                </div>
-                <div class="pes-real-body pes-real-body-short"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-2">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Veículo simples: 1 eixo direcional + 1 eixo traseiro.</div>
+              <svg viewBox="0 0 260 90" aria-label="Caminhão toco, dois eixos">
+                <rect x="14" y="34" width="156" height="28" rx="6" fill="#f58220"/>
+                <rect x="172" y="38" width="56" height="24" rx="4" fill="#f59e0b"/>
+                <rect x="186" y="42" width="18" height="10" rx="2" fill="#0f172a"/>
+                <circle cx="64" cy="72" r="10" fill="#1f2937"/><circle cx="64" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="146" cy="72" r="10" fill="#1f2937"/><circle cx="146" cy="72" r="4" fill="#9ca3af"/>
+              </svg>
             </div>
           </article>
 
@@ -1414,18 +1391,14 @@
               <span class="pes-axle-tag">3 eixos</span>
             </div>
             <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-simple">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Caminhão truck em vista lateral">
-                </div>
-                <div class="pes-real-body pes-real-body-medium"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-3">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Configuração rígida: 1 eixo dianteiro + 2 traseiros.</div>
+              <svg viewBox="0 0 260 90" aria-label="Caminhão truck, três eixos">
+                <rect x="14" y="34" width="156" height="28" rx="6" fill="#f58220"/>
+                <rect x="172" y="38" width="56" height="24" rx="4" fill="#f59e0b"/>
+                <rect x="186" y="42" width="18" height="10" rx="2" fill="#0f172a"/>
+                <circle cx="58" cy="72" r="10" fill="#1f2937"/><circle cx="58" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="132" cy="72" r="10" fill="#1f2937"/><circle cx="132" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="156" cy="72" r="10" fill="#1f2937"/><circle cx="156" cy="72" r="4" fill="#9ca3af"/>
+              </svg>
             </div>
           </article>
 
@@ -1435,113 +1408,34 @@
               <span class="pes-axle-tag">4 eixos</span>
             </div>
             <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-simple">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Caminhão bitruck em vista lateral">
-                </div>
-                <div class="pes-real-body pes-real-body-long"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-4">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Bitruck: 1 eixo direcional + 3 eixos traseiros.</div>
+              <svg viewBox="0 0 260 90" aria-label="Caminhão bitruck, quatro eixos">
+                <rect x="14" y="34" width="156" height="28" rx="6" fill="#f58220"/>
+                <rect x="172" y="38" width="56" height="24" rx="4" fill="#f59e0b"/>
+                <rect x="186" y="42" width="18" height="10" rx="2" fill="#0f172a"/>
+                <circle cx="50" cy="72" r="10" fill="#1f2937"/><circle cx="50" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="114" cy="72" r="10" fill="#1f2937"/><circle cx="114" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="138" cy="72" r="10" fill="#1f2937"/><circle cx="138" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="162" cy="72" r="10" fill="#1f2937"/><circle cx="162" cy="72" r="4" fill="#9ca3af"/>
+              </svg>
             </div>
           </article>
 
           <article class="pes-axle-card">
             <div class="pes-axle-head">
-              <strong>Cavalo + 1 eixo</strong>
-              <span class="pes-axle-tag">3 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-articulado">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Cavalo mecânico com semirreboque de um eixo em vista lateral">
-                </div>
-                <div class="pes-real-tractor-bed"></div>
-                <div class="pes-real-trailer pes-real-trailer-short"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-3">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Cavalo mecânico + semirreboque leve com 1 eixo.</div>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Cavalo + 2 eixos</strong>
-              <span class="pes-axle-tag">4 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-articulado">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Cavalo mecânico com semirreboque de dois eixos em vista lateral">
-                </div>
-                <div class="pes-real-tractor-bed"></div>
-                <div class="pes-real-trailer pes-real-trailer-medium"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-4">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Conjunto articulado curto com 2 eixos no semirreboque.</div>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Carreta</strong>
+              <strong>Cavalo + Semirreboque</strong>
               <span class="pes-axle-tag">5 eixos</span>
             </div>
             <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-articulado">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Carreta de cinco eixos em vista lateral">
-                </div>
-                <div class="pes-real-tractor-bed"></div>
-                <div class="pes-real-trailer pes-real-trailer-long"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-5">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Cavalo mecânico + semirreboque com 3 eixos.</div>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Carreta LS</strong>
-              <span class="pes-axle-tag">6 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-articulado">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Carreta LS de seis eixos em vista lateral">
-                </div>
-                <div class="pes-real-tractor-bed"></div>
-                <div class="pes-real-trailer pes-real-trailer-long"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-6">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Conjunto com 3 eixos no cavalo e 3 eixos no semirreboque.</div>
+              <svg viewBox="0 0 260 90" aria-label="Cavalo mais semirreboque, cinco eixos">
+                <rect x="20" y="38" width="58" height="24" rx="4" fill="#f59e0b"/>
+                <rect x="80" y="34" width="136" height="28" rx="6" fill="#f58220"/>
+                <rect x="198" y="30" width="40" height="8" rx="2" fill="#f59e0b"/>
+                <circle cx="40" cy="72" r="10" fill="#1f2937"/><circle cx="40" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="66" cy="72" r="10" fill="#1f2937"/><circle cx="66" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="124" cy="72" r="10" fill="#1f2937"/><circle cx="124" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="156" cy="72" r="10" fill="#1f2937"/><circle cx="156" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="188" cy="72" r="10" fill="#1f2937"/><circle cx="188" cy="72" r="4" fill="#9ca3af"/>
+              </svg>
             </div>
           </article>
 
@@ -1551,24 +1445,18 @@
               <span class="pes-axle-tag">7 eixos</span>
             </div>
             <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-bitrem">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Bitrem de sete eixos em vista lateral">
-                </div>
-                <div class="pes-real-tractor-bed"></div>
-                <div class="pes-real-trailer pes-real-trailer-short"></div>
-                <div class="pes-real-trailer pes-real-trailer-last pes-real-trailer-short"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-7">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Bitrem: cavalo mecânico + dois semirreboques em combinação longa.</div>
+              <svg viewBox="0 0 260 90" aria-label="Bitrem, sete eixos">
+                <rect x="14" y="40" width="44" height="22" rx="4" fill="#f59e0b"/>
+                <rect x="62" y="34" width="70" height="28" rx="6" fill="#f58220"/>
+                <rect x="140" y="34" width="100" height="28" rx="6" fill="#fb923c"/>
+                <circle cx="30" cy="72" r="9" fill="#1f2937"/><circle cx="30" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="52" cy="72" r="9" fill="#1f2937"/><circle cx="52" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="84" cy="72" r="9" fill="#1f2937"/><circle cx="84" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="112" cy="72" r="9" fill="#1f2937"/><circle cx="112" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="162" cy="72" r="9" fill="#1f2937"/><circle cx="162" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="190" cy="72" r="9" fill="#1f2937"/><circle cx="190" cy="72" r="4" fill="#9ca3af"/>
+                <circle cx="218" cy="72" r="9" fill="#1f2937"/><circle cx="218" cy="72" r="4" fill="#9ca3af"/>
+              </svg>
             </div>
           </article>
 
@@ -1578,26 +1466,21 @@
               <span class="pes-axle-tag">9 eixos</span>
             </div>
             <div class="pes-axle-media">
-              <div class="pes-real-rig pes-real-rig-bitrem">
-                <div class="pes-real-cab">
-                  <img src="cesquerda.png" alt="Rodotrem de nove eixos em vista lateral">
-                </div>
-                <div class="pes-real-tractor-bed"></div>
-                <div class="pes-real-trailer pes-real-trailer-medium"></div>
-                <div class="pes-real-trailer pes-real-trailer-last pes-real-trailer-medium"></div>
-                <div class="pes-real-wheel-row pes-real-wheel-row-9">
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                  <span class="pes-real-wheel"></span>
-                </div>
-              </div>
-              <div class="pes-axle-note">Rodotrem: cavalo + dolly + dois semirreboques, totalizando 9 eixos.</div>
+              <svg viewBox="0 0 260 90" aria-label="Rodotrem, nove eixos">
+                <rect x="10" y="42" width="42" height="20" rx="4" fill="#f59e0b"/>
+                <rect x="56" y="34" width="58" height="28" rx="6" fill="#f58220"/>
+                <rect x="118" y="34" width="58" height="28" rx="6" fill="#fb923c"/>
+                <rect x="180" y="34" width="64" height="28" rx="6" fill="#fdba74"/>
+                <circle cx="24" cy="72" r="8" fill="#1f2937"/><circle cx="24" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="44" cy="72" r="8" fill="#1f2937"/><circle cx="44" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="72" cy="72" r="8" fill="#1f2937"/><circle cx="72" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="92" cy="72" r="8" fill="#1f2937"/><circle cx="92" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="132" cy="72" r="8" fill="#1f2937"/><circle cx="132" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="152" cy="72" r="8" fill="#1f2937"/><circle cx="152" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="188" cy="72" r="8" fill="#1f2937"/><circle cx="188" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="208" cy="72" r="8" fill="#1f2937"/><circle cx="208" cy="72" r="3" fill="#9ca3af"/>
+                <circle cx="228" cy="72" r="8" fill="#1f2937"/><circle cx="228" cy="72" r="3" fill="#9ca3af"/>
+              </svg>
             </div>
           </article>
         </div>
@@ -1759,6 +1642,13 @@
         <button class="btn btn-sm" data-click="croqui_espelhar()">⇋ Espelhar</button>
         <button class="btn btn-sm" data-click="croqui_camada('frente')">⬆ Frente</button>
         <button class="btn btn-sm" data-click="croqui_camada('tras')">⬇ Fundo</button>
+      </div>
+
+      <div class="flex gap-8 flex-wrap" style="margin-bottom:12px;">
+        <button class="btn btn-sm" data-click="croqui_aplicarModelo('frontal')">Modelo frontal</button>
+        <button class="btn btn-sm" data-click="croqui_aplicarModelo('traseira')">Modelo traseira</button>
+        <button class="btn btn-sm" data-click="croqui_aplicarModelo('transversal')">Modelo transversal</button>
+        <button class="btn btn-sm" data-click="croqui_aplicarModelo('saida')">Modelo saída</button>
       </div>
 
       <div style="background:#1a1f2d;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
@@ -1967,7 +1857,7 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title">📄 CTB Documentos</h2>
+          <h2 class="card-title">📄 CTB Brasileiro</h2>
           <p class="card-sub">Consulta rápida sobre regras, documentos, ciclomotores e exigências operacionais.</p>
         </div>
       </div>
@@ -2500,11 +2390,128 @@
       <button class="btn btn-primary" data-click="croqui_filtrarIcones('veiculo')">Veículos</button>
       <button class="btn" data-click="croqui_filtrarIcones('objeto')">Sinalização</button>
       <button class="btn" data-click="croqui_filtrarIcones('obstaculo')">Obstáculos</button>
+      <button class="btn" data-click="croqui_filtrarIcones('sinistro')">Sinistros</button>
       <button class="btn" data-click="croqui_filtrarIcones('frequentes')">⭐ Frequentes</button>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;" id="croqui-icons-grid">
-      <!-- Ícones gerados dinamicamente pelo croqui_renderizarGridIcones() -->
+      <!-- Frequentes -->
+      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirPistaSvg('waldermar viera SC-.svg')">
+        <span class="icon-emoji">🛣️</span>
+        <span class="icon-label">Pista W. Vieira</span>
+      </button>
+      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirSvg('pedestre.svg', true)">
+        <img src="pedestre.svg" alt="">
+        <span class="icon-label">Pedestre (SVG)</span>
+      </button>
+      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirIcone('viatura')">
+        <span class="icon-emoji">🚓</span>
+        <span class="icon-label">Viatura PMRv</span>
+      </button>
+      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirIcone('v1')">
+        <span class="icon-emoji">🚗</span>
+        <span class="icon-label">Veículo 1 (V1)</span>
+      </button>
+      
+      <!-- Veículos -->
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('v1')">
+        <span class="icon-emoji">🚗</span>
+        <span class="icon-label">Veículo 1</span>
+      </button>
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('v2')">
+        <span class="icon-emoji">🚘</span>
+        <span class="icon-label">Veículo 2</span>
+      </button>
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('moto')">
+        <span class="icon-emoji">🏍️</span>
+        <span class="icon-label">Moto</span>
+      </button>
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('caminhao')">
+        <span class="icon-emoji">🚚</span>
+        <span class="icon-label">Caminhão</span>
+      </button>
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('carreta')">
+        <span class="icon-emoji">🚛</span>
+        <span class="icon-label">Carreta</span>
+      </button>
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('onibus')">
+        <span class="icon-emoji">🚌</span>
+        <span class="icon-label">Ônibus</span>
+      </button>
+      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('viatura')">
+        <span class="icon-emoji">🚓</span>
+        <span class="icon-label">Viatura</span>
+      </button>
+
+      <!-- Sinalização -->
+      <button class="btn croqui-icon-btn objeto hidden" data-click="croqui_inserirIcone('pare')">
+        <span class="icon-emoji">🛑</span>
+        <span class="icon-label">Pare</span>
+      </button>
+      <button class="btn croqui-icon-btn objeto hidden" data-click="croqui_inserirIcone('semaforo')">
+        <span class="icon-emoji">🚦</span>
+        <span class="icon-label">Semáforo</span>
+      </button>
+      <button class="btn croqui-icon-btn objeto hidden" data-click="croqui_inserirIcone('cone')">
+        <span class="icon-emoji">⚠️</span>
+        <span class="icon-label">Cone</span>
+      </button>
+
+      <!-- Obstáculos -->
+      <button class="btn croqui-icon-btn obstaculo hidden" data-click="croqui_inserirSvg('pedestre.svg', true)">
+        <img src="pedestre.svg" alt="">
+        <span class="icon-label">Pedestre (SVG)</span>
+      </button>
+      <button class="btn croqui-icon-btn obstaculo hidden" data-click="croqui_inserirIcone('poste')">
+        <span class="icon-emoji">💡</span>
+        <span class="icon-label">Poste</span>
+      </button>
+      <button class="btn croqui-icon-btn obstaculo hidden" data-click="croqui_inserirIcone('arvore')">
+        <span class="icon-emoji">🌳</span>
+        <span class="icon-label">Árvore</span>
+      </button>
+
+      <!-- Sinistros (SVG) -->
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('3.1-colisao-frontal.svg')">
+        <img src="img/sinistros/3.1-colisao-frontal.svg" alt="">
+        <span class="icon-label">Colisão Frontal</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('3.2-colisao-traseira.svg')">
+        <img src="img/sinistros/3.2-colisao-traseira.svg" alt="">
+        <span class="icon-label">Colisão Traseira</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('3.3-colisao-engavetamento.svg')">
+        <img src="img/sinistros/3.3-colisao-engavetamento.svg" alt="">
+        <span class="icon-label">Engavetamento</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('2.3-abalroamento-transversal.svg')">
+        <img src="img/sinistros/2.3-abalroamento-transversal.svg" alt="">
+        <span class="icon-label">Transversal</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('5.3-saida-pista-capotamento.svg')">
+        <img src="img/sinistros/5.3-saida-pista-capotamento.svg" alt="">
+        <span class="icon-label">Capotamento</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('5.4-saida-pista-tombamento.svg')">
+        <img src="img/sinistros/5.4-saida-pista-tombamento.svg" alt="">
+        <span class="icon-label">Tombamento</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('1.1-atropelamento-pedestre.svg')">
+        <img src="img/sinistros/1.1-atropelamento-pedestre.svg" alt="">
+        <span class="icon-label">Atrop. Pedestre</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('1.2-atropelamento-animal.svg')">
+        <img src="img/sinistros/1.2-atropelamento-animal.svg" alt="">
+        <span class="icon-label">Atrop. Animal</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('4.1-choque-poste.svg')">
+        <img src="img/sinistros/4.1-choque-poste.svg" alt="">
+        <span class="icon-label">Choque Poste</span>
+      </button>
+      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('4.6-choque-defensa.svg')">
+        <img src="img/sinistros/4.6-choque-defensa.svg" alt="">
+        <span class="icon-label">Choque Defensa</span>
+      </button>
     </div>
   </div>
 </div>
