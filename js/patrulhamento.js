@@ -9,6 +9,21 @@ const PAT_GPS_STATUS_LABEL = 'Sintonizando...';
 const PAT_LOTE_MAX_PLACAS = 20;
 let PAT_LOTE_PLACAS = [];
 let PAT_LOTE_SEEN = new Set();
+let PAT_RASCUNHO_TIMEOUT = null;
+let PAT_FEEDBACK_TIMEOUT = null;
+let PAT_DRAFT_BOUND = false;
+const PAT_DRAFT_KEY = 'pmrv_pat_draft_v2';
+const PAT_FAVORITOS_KEY = 'pmrv_pat_favoritos_v1';
+const PAT_RECENTES_KEY = 'pmrv_pat_recentes_v1';
+const PAT_MAX_FAVORITOS = 8;
+const PAT_MAX_RECENTES = 6;
+const PAT_RODOVIAS_VOZ = new Set([
+  'SC-281', 'SC-401', 'SC-402', 'SC-403', 'SC-404', 'SC-405',
+  'SC-406', 'SC-407', 'SC-408', 'SC-410', 'SC-411', 'SC-435'
+]);
+const PAT_VOICE_KM_MARKERS = new Set(['km', 'quilometro', 'quilometros']);
+let PAT_FAVORITOS = [];
+let PAT_RECENTES = [];
 
 const PAT_QUICK_INFRACOES = {
   '518-51': { nome: 'Cinto - Condutor sem cinto', codigo: '518-51', gravidade: 'Grave', artigo: 'Art. 167' },
@@ -103,8 +118,169 @@ function pat_getVeiculos() {
   return pat_getStore()?.getAll?.() || [];
 }
 
+function pat_storageRead(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn(`Falha ao ler ${key}:`, error);
+    return fallback;
+  }
+}
+
+function pat_storageWrite(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn(`Falha ao salvar ${key}:`, error);
+  }
+}
+
+function pat_atualizarDraftStatus(texto, color) {
+  const el = document.getElementById('pat_draft_status');
+  if (!el) return;
+  el.textContent = texto;
+  el.style.color = color || '#fff';
+}
+
+function pat_mostrarFeedback(texto, tipo = 'info') {
+  const el = document.getElementById('pat_feedback');
+  if (!el) return;
+
+  const colors = {
+    info: 'var(--muted)',
+    success: '#86efac',
+    warning: '#fcd34d',
+    danger: '#fca5a5'
+  };
+
+  el.textContent = texto;
+  el.style.color = colors[tipo] || colors.info;
+
+  if (PAT_FEEDBACK_TIMEOUT) clearTimeout(PAT_FEEDBACK_TIMEOUT);
+  PAT_FEEDBACK_TIMEOUT = setTimeout(() => {
+    const feedback = document.getElementById('pat_feedback');
+    if (!feedback) return;
+    feedback.textContent = 'Use favoritos, histórico e autosave para agilizar o turno.';
+    feedback.style.color = 'var(--muted)';
+  }, 4500);
+}
+
+function pat_getModoLocalAtual() {
+  return document.getElementById('pat_local_manual_box')?.classList.contains('hidden') ? 'gps' : 'manual';
+}
+
+function pat_criarRotuloContexto(context) {
+  if (!context) return 'Contexto';
+  const codigo = context?.infracao?.codigo || 'manual';
+  return `${context.local} · ${codigo}`;
+}
+
+function pat_carregarFavoritosERecentes() {
+  const favoritos = pat_storageRead(PAT_FAVORITOS_KEY, []);
+  const recentes = pat_storageRead(PAT_RECENTES_KEY, []);
+  PAT_FAVORITOS = Array.isArray(favoritos) ? favoritos : [];
+  PAT_RECENTES = Array.isArray(recentes) ? recentes : [];
+}
+
+function pat_renderizarColecaoContextos(elementId, items, emptyMessage, applyFn, removeFn) {
+  const container = document.getElementById(elementId);
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = `<span style="font-size:11px;color:var(--muted);">${emptyMessage}</span>`;
+    return;
+  }
+
+  container.innerHTML = items.map((item, index) => `
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);max-width:100%;">
+      <button type="button" class="btn btn-sm" style="padding:4px 8px;min-height:auto;white-space:normal;text-align:left;" data-click="${applyFn}(${index})">${pat_escapeHtml(item.label || pat_criarRotuloContexto(item))}</button>
+      ${removeFn ? `<button type="button" class="btn btn-sm btn-danger" style="padding:2px 8px;min-height:auto;" data-click="${removeFn}(${index})">x</button>` : ''}
+    </span>
+  `).join('');
+}
+
+function pat_renderizarFavoritos() {
+  pat_renderizarColecaoContextos(
+    'pat_favoritos_lista',
+    PAT_FAVORITOS,
+    'Nenhum favorito salvo ainda.',
+    'pat_aplicarFavorito',
+    'pat_removerFavorito'
+  );
+}
+
+function pat_renderizarRecentes() {
+  pat_renderizarColecaoContextos(
+    'pat_recentes_lista',
+    PAT_RECENTES,
+    'Os ultimos contextos usados vao aparecer aqui.',
+    'pat_aplicarRecente',
+    null
+  );
+}
+
+function pat_extrairRodoviaDoLocal(local) {
+  const match = String(local || '').match(/\b(SC-\d{3}|BR-\d{3})\b/i);
+  return match ? match[1].toUpperCase() : 'Sem rodovia';
+}
+
+function pat_obterMaisFrequente(items, fallback = 'Sem dados') {
+  const counts = new Map();
+  items.forEach((item) => {
+    const key = String(item || '').trim() || fallback;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  let bestLabel = fallback;
+  let bestCount = 0;
+  counts.forEach((count, label) => {
+    if (count > bestCount) {
+      bestLabel = label;
+      bestCount = count;
+    }
+  });
+
+  return { label: bestLabel, count: bestCount };
+}
+
+function pat_renderizarEstatisticas() {
+  const box = document.getElementById('pat_stats_box');
+  const veiculos = pat_getVeiculos();
+  if (!box) return;
+
+  if (!veiculos.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const topInfracao = pat_obterMaisFrequente(veiculos.map((item) => item?.infracao?.codigo ? `${item.infracao.codigo} - ${item.infracao.nome}` : item?.infracao?.nome));
+  const topRodovia = pat_obterMaisFrequente(veiculos.map((item) => pat_extrairRodoviaDoLocal(item.local)));
+  const ultimaPlaca = veiculos[0]?.placa || '---';
+
+  const cards = [
+    { title: 'Mais usada', value: topRodovia.label, sub: `${topRodovia.count} registro(s)` },
+    { title: 'Infração líder', value: topInfracao.label, sub: `${topInfracao.count} ocorrência(s)` },
+    { title: 'Última placa', value: ultimaPlaca, sub: veiculos[0]?.hora || '' }
+  ];
+
+  box.innerHTML = cards.map((card) => `
+    <div style="padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03);">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--label);">${pat_escapeHtml(card.title)}</div>
+      <div style="margin-top:6px;font-size:14px;font-weight:800;color:#fff;">${pat_escapeHtml(card.value)}</div>
+      <div style="margin-top:4px;font-size:11px;color:var(--muted);">${pat_escapeHtml(card.sub)}</div>
+    </div>
+  `).join('');
+}
+
 function pat_init() {
+  pat_carregarFavoritosERecentes();
   pat_carregarCache();
+  pat_restaurarRascunho();
+  pat_vincularAutosave();
+  pat_renderizarFavoritos();
+  pat_renderizarRecentes();
   pat_atualizarDataHora();
   if (!patRelogioHandle) {
     patRelogioHandle = setInterval(pat_atualizarDataHora, 30000);
@@ -152,7 +328,11 @@ function pat_resetFormulario() {
   document.getElementById('pat_quick_cinto_box')?.classList.add('hidden');
   document.getElementById('pat_quick_celular_box')?.classList.add('hidden');
   document.querySelectorAll('.infra-quick-card').forEach(c => c.classList.remove('active'));
+  pat_setModoPlaca('manual');
+  pat_setModoLocal('gps');
   pat_atualizarDataHora();
+  pat_salvarRascunho(true);
+  pat_atualizarDraftStatus('Formulario limpo e rascunho atualizado.', '#86efac');
 }
 
 async function pat_simularOCR(input) {
@@ -232,6 +412,14 @@ function pat_setBotaoVoz(state, text) {
 
 function pat_setBotaoLote(state, text) {
   const btn = document.getElementById('btn-pat-placa-lote');
+  if (!btn) return;
+
+  btn.disabled = state === 'loading';
+  btn.textContent = text;
+}
+
+function pat_setBotaoLocalVoz(state, text) {
+  const btn = document.getElementById('btn-pat-local-voz');
   if (!btn) return;
 
   btn.disabled = state === 'loading';
@@ -325,6 +513,91 @@ function pat_tokenParaChar(token) {
   if (/^[a-z0-9]{1,7}$/i.test(token)) return token.toUpperCase();
   if (/^\d{2,7}$/.test(token)) return token;
   return '';
+}
+
+function pat_tokenEhMarcadorSc(tokens, index) {
+  const atual = tokens[index];
+  const proximo = tokens[index + 1];
+  if (!atual) return false;
+  if (atual === 'sc') return true;
+  if (/^sc\d{3}$/.test(atual)) return true;
+  return atual === 's' && proximo === 'c';
+}
+
+function pat_coletarDigitosPorVoz(tokens, startIndex) {
+  let valor = '';
+
+  for (let i = startIndex; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (!token) continue;
+    if (PAT_VOICE_KM_MARKERS.has(token) || pat_tokenEhMarcadorSc(tokens, i)) break;
+    if (PAT_VOICE_CONNECTORS.has(token) || token === 'e') continue;
+
+    if (/^\d+$/.test(token)) {
+      valor += token;
+      continue;
+    }
+
+    const char = pat_tokenParaChar(token);
+    if (/^\d+$/.test(char)) {
+      valor += char;
+      continue;
+    }
+
+    if (valor) break;
+  }
+
+  return valor;
+}
+
+function pat_extrairLocalManualDeFala(texto) {
+  const normalizado = pat_normalizarTextoVoz(texto);
+  if (!normalizado) return null;
+
+  const tokens = normalizado.split(' ').filter(Boolean);
+  let rodovia = '';
+  let kmCru = '';
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+
+    if (!rodovia && /^sc(\d{3})$/.test(token)) {
+      const numeroInline = token.match(/^sc(\d{3})$/)?.[1] || '';
+      const rodoviaInline = numeroInline ? `SC-${numeroInline}` : '';
+      if (PAT_RODOVIAS_VOZ.has(rodoviaInline)) rodovia = rodoviaInline;
+      continue;
+    }
+
+    if (!rodovia && pat_tokenEhMarcadorSc(tokens, i)) {
+      const inicio = token === 's' && tokens[i + 1] === 'c' ? i + 2 : i + 1;
+      const numero = pat_coletarDigitosPorVoz(tokens, inicio).slice(0, 3);
+      const candidata = numero ? `SC-${numero}` : '';
+      if (PAT_RODOVIAS_VOZ.has(candidata)) rodovia = candidata;
+      continue;
+    }
+
+    if (!kmCru && PAT_VOICE_KM_MARKERS.has(token)) {
+      kmCru = pat_coletarDigitosPorVoz(tokens, i + 1);
+      continue;
+    }
+  }
+
+  if (!rodovia || !kmCru) return null;
+
+  const kmInteiro = parseInt(kmCru, 10);
+  if (Number.isNaN(kmInteiro)) return null;
+
+  const kmInput = document.getElementById('pat_manual_km');
+  const kmTexto = String(kmInteiro);
+  if (kmInput) {
+    kmInput.value = kmTexto;
+    core_formatarKM(kmInput);
+  }
+
+  return {
+    rodovia,
+    km: kmInput?.value || `${kmTexto},000`
+  };
 }
 
 function pat_extrairPlacasDeLote(texto) {
@@ -565,6 +838,283 @@ function pat_iniciarVozLotePlacas() {
   recognition.start();
 }
 
+function pat_iniciarVozLocal() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Reconhecimento de voz nao suportado neste navegador.');
+    return;
+  }
+
+  pat_pararReconhecimentoVoz();
+  pat_setModoLocal('manual');
+
+  const recognition = new SpeechRecognition();
+  PAT_SPEECH_RECOGNITION = recognition;
+
+  recognition.lang = 'pt-BR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
+
+  pat_setBotaoLocalVoz('loading', 'Ouvindo local...');
+
+  recognition.onresult = (event) => {
+    const resultados = [];
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      resultados.push(event.results[i][0].transcript || '');
+    }
+
+    const textoFalado = resultados.join(' ').trim();
+    const localConvertido = pat_extrairLocalManualDeFala(textoFalado);
+
+    if (event.results[event.results.length - 1]?.isFinal) {
+      if (!localConvertido) {
+        alert(`Nao foi possivel identificar rodovia e km.\n\nDiga algo como: SC 401 quilometro 33.\n\nReconhecido: ${textoFalado || '---'}`);
+        return;
+      }
+
+      const rodoviaEl = document.getElementById('pat_manual_rodovia');
+      const kmEl = document.getElementById('pat_manual_km');
+      if (rodoviaEl) rodoviaEl.value = localConvertido.rodovia;
+      if (kmEl) kmEl.value = localConvertido.km;
+      if (navigator.vibrate) navigator.vibrate(80);
+    } else {
+      const btn = document.getElementById('btn-pat-local-voz');
+      if (btn) {
+        btn.textContent = localConvertido
+          ? `${localConvertido.rodovia} KM ${localConvertido.km}`
+          : 'Ouvindo local...';
+      }
+    }
+  };
+
+  recognition.onerror = (event) => {
+    const erro = event?.error || 'desconhecido';
+    if (erro !== 'no-speech' && erro !== 'aborted') {
+      alert(`Erro no reconhecimento de voz: ${erro}`);
+    }
+  };
+
+  recognition.onend = () => {
+    PAT_SPEECH_RECOGNITION = null;
+    pat_setBotaoLocalVoz('idle', 'Voz local');
+  };
+
+  recognition.start();
+}
+
+function pat_obterCodigoQuickSelecionado() {
+  const dataInput = document.getElementById('pat_infracao_data');
+  const display = document.getElementById('pat_infracao_display')?.value || '';
+  if (display === 'Infracao Manual') return 'MANUAL';
+  if (display.startsWith('Selecione: Cinto')) return 'CINTO';
+  if (display.startsWith('Selecione o tipo de uso de celular')) return 'CELULAR';
+  if (!dataInput?.value) return '';
+
+  try {
+    const infra = JSON.parse(dataInput.value);
+    return infra?.codigo || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function pat_capturarRascunho() {
+  return {
+    placa: document.getElementById('pat_placa')?.value || '',
+    placaModo: document.getElementById('pat_placa_ocr_wrap')?.classList.contains('hidden') ? 'manual' : 'ocr',
+    localModo: pat_getModoLocalAtual(),
+    localGps: document.getElementById('pat_local')?.value || '',
+    rodovia: document.getElementById('pat_manual_rodovia')?.value || '',
+    km: document.getElementById('pat_manual_km')?.value || '',
+    quickCodigo: pat_obterCodigoQuickSelecionado(),
+    infracaoData: document.getElementById('pat_infracao_data')?.value || '',
+    infracaoDisplay: document.getElementById('pat_infracao_display')?.value || '',
+    manualNome: document.getElementById('pat_manual_infra_nome')?.value || '',
+    manualCodigo: document.getElementById('pat_manual_infra_codigo')?.value || '',
+    obs: document.getElementById('pat_obs')?.value || ''
+  };
+}
+
+function pat_salvarRascunho(imediato = false) {
+  const persistir = () => {
+    pat_storageWrite(PAT_DRAFT_KEY, pat_capturarRascunho());
+    pat_atualizarDraftStatus('Rascunho salvo automaticamente.', '#86efac');
+  };
+
+  if (imediato) {
+    persistir();
+    return;
+  }
+
+  if (PAT_RASCUNHO_TIMEOUT) clearTimeout(PAT_RASCUNHO_TIMEOUT);
+  pat_atualizarDraftStatus('Salvando rascunho...', '#fcd34d');
+  PAT_RASCUNHO_TIMEOUT = setTimeout(persistir, 250);
+}
+
+function pat_restaurarRascunho() {
+  const draft = pat_storageRead(PAT_DRAFT_KEY, null);
+  if (!draft || typeof draft !== 'object') {
+    pat_atualizarDraftStatus('Sem rascunho salvo.', 'var(--muted)');
+    return;
+  }
+
+  const placaEl = document.getElementById('pat_placa');
+  if (placaEl) {
+    placaEl.value = draft.placa || '';
+    pat_formatarPlaca(placaEl);
+  }
+
+  pat_setModoPlaca(draft.placaModo === 'ocr' ? 'ocr' : 'manual');
+  pat_setModoLocal(draft.localModo === 'manual' ? 'manual' : 'gps');
+
+  const localEl = document.getElementById('pat_local');
+  const rodoviaEl = document.getElementById('pat_manual_rodovia');
+  const kmEl = document.getElementById('pat_manual_km');
+  const infraDataEl = document.getElementById('pat_infracao_data');
+  const infraDisplayEl = document.getElementById('pat_infracao_display');
+  const manualNomeEl = document.getElementById('pat_manual_infra_nome');
+  const manualCodigoEl = document.getElementById('pat_manual_infra_codigo');
+  const obsEl = document.getElementById('pat_obs');
+
+  if (localEl) localEl.value = draft.localGps || '';
+  if (rodoviaEl) rodoviaEl.value = draft.rodovia || '';
+  if (kmEl) kmEl.value = draft.km || '';
+  if (infraDataEl) infraDataEl.value = draft.infracaoData || '';
+  if (infraDisplayEl) infraDisplayEl.value = draft.infracaoDisplay || '';
+  if (manualNomeEl) manualNomeEl.value = draft.manualNome || '';
+  if (manualCodigoEl) manualCodigoEl.value = draft.manualCodigo || '';
+  if (obsEl) obsEl.value = draft.obs || '';
+
+  if (draft.quickCodigo) {
+    pat_selectQuick(draft.quickCodigo);
+    if (draft.quickCodigo === 'MANUAL') {
+      if (manualNomeEl) manualNomeEl.value = draft.manualNome || '';
+      if (manualCodigoEl) manualCodigoEl.value = draft.manualCodigo || '';
+    }
+  }
+
+  pat_atualizarDraftStatus('Rascunho restaurado do ultimo uso.', '#93c5fd');
+}
+
+function pat_vincularAutosave() {
+  if (PAT_DRAFT_BOUND) return;
+  PAT_DRAFT_BOUND = true;
+
+  const ids = [
+    'pat_placa', 'pat_local', 'pat_manual_rodovia', 'pat_manual_km',
+    'pat_infracao_display', 'pat_infracao_data', 'pat_manual_infra_nome',
+    'pat_manual_infra_codigo', 'pat_obs'
+  ];
+
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => pat_salvarRascunho());
+    el.addEventListener('change', () => pat_salvarRascunho());
+  });
+}
+
+function pat_aplicarContextoSalvo(context) {
+  if (!context) return;
+
+  const obsEl = document.getElementById('pat_obs');
+  if (obsEl) obsEl.value = context.obs || '';
+
+  if (context.locationMode === 'manual') {
+    pat_setModoLocal('manual');
+    const rodoviaEl = document.getElementById('pat_manual_rodovia');
+    const kmEl = document.getElementById('pat_manual_km');
+    if (rodoviaEl) rodoviaEl.value = context.rodovia || '';
+    if (kmEl) kmEl.value = context.km || '';
+  } else {
+    pat_setModoLocal('gps');
+    const localEl = document.getElementById('pat_local');
+    if (localEl) localEl.value = context.localGps || context.local || '';
+  }
+
+  const infraDataEl = document.getElementById('pat_infracao_data');
+  const infraDisplayEl = document.getElementById('pat_infracao_display');
+  const manualNomeEl = document.getElementById('pat_manual_infra_nome');
+  const manualCodigoEl = document.getElementById('pat_manual_infra_codigo');
+
+  if (context.quickCodigo) {
+    pat_selectQuick(context.quickCodigo);
+  } else {
+    document.querySelectorAll('.infra-quick-card').forEach(c => c.classList.remove('active'));
+    document.getElementById('pat_infra_manual_box')?.classList.add('hidden');
+    document.getElementById('pat_quick_cinto_box')?.classList.add('hidden');
+    document.getElementById('pat_quick_celular_box')?.classList.add('hidden');
+  }
+
+  if (infraDataEl) infraDataEl.value = context.infracaoData || '';
+  if (infraDisplayEl) infraDisplayEl.value = context.infracaoDisplay || '';
+  if (manualNomeEl) manualNomeEl.value = context.manualNome || '';
+  if (manualCodigoEl) manualCodigoEl.value = context.manualCodigo || '';
+
+  pat_salvarRascunho(true);
+  pat_mostrarFeedback(`Contexto aplicado: ${context.label || pat_criarRotuloContexto(context)}`, 'success');
+}
+
+function pat_salvarFavoritoAtual() {
+  const context = pat_coletarContextoFormulario({ silent: false });
+  if (!context) return;
+
+  const favorito = {
+    id: Date.now(),
+    label: pat_criarRotuloContexto(context),
+    ...context,
+    quickCodigo: pat_obterCodigoQuickSelecionado(),
+    infracaoData: document.getElementById('pat_infracao_data')?.value || '',
+    infracaoDisplay: document.getElementById('pat_infracao_display')?.value || '',
+    manualNome: document.getElementById('pat_manual_infra_nome')?.value || '',
+    manualCodigo: document.getElementById('pat_manual_infra_codigo')?.value || ''
+  };
+
+  PAT_FAVORITOS = PAT_FAVORITOS.filter((item) => item.label !== favorito.label);
+  PAT_FAVORITOS.unshift(favorito);
+  PAT_FAVORITOS = PAT_FAVORITOS.slice(0, PAT_MAX_FAVORITOS);
+  pat_storageWrite(PAT_FAVORITOS_KEY, PAT_FAVORITOS);
+  pat_renderizarFavoritos();
+  pat_mostrarFeedback('Favorito operacional salvo.', 'success');
+}
+
+function pat_registrarContextoRecente(context) {
+  if (!context) return;
+
+  const item = {
+    id: Date.now(),
+    label: pat_criarRotuloContexto(context),
+    ...context,
+    quickCodigo: pat_obterCodigoQuickSelecionado(),
+    infracaoData: document.getElementById('pat_infracao_data')?.value || '',
+    infracaoDisplay: document.getElementById('pat_infracao_display')?.value || '',
+    manualNome: document.getElementById('pat_manual_infra_nome')?.value || '',
+    manualCodigo: document.getElementById('pat_manual_infra_codigo')?.value || ''
+  };
+
+  PAT_RECENTES = PAT_RECENTES.filter((entry) => entry.label !== item.label);
+  PAT_RECENTES.unshift(item);
+  PAT_RECENTES = PAT_RECENTES.slice(0, PAT_MAX_RECENTES);
+  pat_storageWrite(PAT_RECENTES_KEY, PAT_RECENTES);
+  pat_renderizarRecentes();
+}
+
+function pat_aplicarFavorito(index) {
+  pat_aplicarContextoSalvo(PAT_FAVORITOS[index]);
+}
+
+function pat_aplicarRecente(index) {
+  pat_aplicarContextoSalvo(PAT_RECENTES[index]);
+}
+
+function pat_removerFavorito(index) {
+  PAT_FAVORITOS.splice(index, 1);
+  pat_storageWrite(PAT_FAVORITOS_KEY, PAT_FAVORITOS);
+  pat_renderizarFavoritos();
+  pat_mostrarFeedback('Favorito removido.', 'warning');
+}
+
 function pat_selectQuick(codigo) {
   const display = document.getElementById('pat_infracao_display');
   const dataInput = document.getElementById('pat_infracao_data');
@@ -582,6 +1132,7 @@ function pat_selectQuick(codigo) {
     display.value = 'Infracao Manual';
     dataInput.value = '';
     document.getElementById('pat_manual_infra_nome')?.focus();
+    pat_salvarRascunho();
     return;
   }
 
@@ -592,6 +1143,7 @@ function pat_selectQuick(codigo) {
     cintoBox?.classList.remove('hidden');
     const btn = document.querySelector(`[data-click="pat_selectQuick('CINTO')"]`);
     if (btn) btn.classList.add('active');
+    pat_salvarRascunho();
     return;
   }
 
@@ -602,6 +1154,7 @@ function pat_selectQuick(codigo) {
     celularBox?.classList.remove('hidden');
     const btn = document.querySelector(`[data-click="pat_selectQuick('CELULAR')"]`);
     if (btn) btn.classList.add('active');
+    pat_salvarRascunho();
     return;
   }
 
@@ -613,9 +1166,11 @@ function pat_selectQuick(codigo) {
   dataInput.value = JSON.stringify(infra);
   const btn = document.querySelector(`[data-click="pat_selectQuick('${codigo}')"]`);
   if (btn) btn.classList.add('active');
+  pat_salvarRascunho();
 }
 
-function pat_coletarContextoFormulario() {
+function pat_coletarContextoFormulario(options = {}) {
+  const { silent = false } = options;
   const infracaoDataInput = document.getElementById('pat_infracao_data');
   if (!infracaoDataInput) return null;
 
@@ -623,17 +1178,36 @@ function pat_coletarContextoFormulario() {
   const data = document.getElementById('pat_data')?.value || agora.toLocaleDateString('pt-BR');
   const hora = document.getElementById('pat_hora')?.value || agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const obs = document.getElementById('pat_obs')?.value.trim() || '';
+  const locationMode = pat_getModoLocalAtual();
 
   let local = '';
-  const gpsBox = document.getElementById('pat_local_gps_box');
-  if (gpsBox && !gpsBox.classList.contains('hidden')) {
-    local = pat_normalizarLocalGps(document.getElementById('pat_local')?.value);
+  let rodovia = '';
+  let km = '';
+  let localGps = '';
+  if (locationMode === 'gps') {
+    localGps = document.getElementById('pat_local')?.value || '';
+    local = pat_normalizarLocalGps(localGps);
+    if (local === 'GPS nao obtido') {
+      if (!silent) alert('Obtenha o local pelo GPS ou mude para modo manual.');
+      return null;
+    }
   } else {
-    const rod = document.getElementById('pat_manual_rodovia')?.value;
+    rodovia = document.getElementById('pat_manual_rodovia')?.value || '';
     const kmInput = document.getElementById('pat_manual_km');
     if (kmInput) core_formatarKM(kmInput);
-    const km = kmInput?.value || '0,000';
-    local = rod ? `${rod}, KM ${km}` : `KM ${km}`;
+    km = kmInput?.value || '';
+
+    if (!rodovia) {
+      if (!silent) alert('Selecione a rodovia no modo manual.');
+      return null;
+    }
+
+    if (!km) {
+      if (!silent) alert('Informe o KM no modo manual.');
+      return null;
+    }
+
+    local = `${rodovia}, KM ${km}`;
   }
 
   let infracaoObj = null;
@@ -641,23 +1215,27 @@ function pat_coletarContextoFormulario() {
     try {
       infracaoObj = JSON.parse(infracaoDataInput.value);
     } catch (err) {
-      alert('Dados da infracao invalidos. Selecione novamente.');
+      if (!silent) alert('Dados da infracao invalidos. Selecione novamente.');
       return null;
     }
   } else {
     const mNome = document.getElementById('pat_manual_infra_nome')?.value.trim();
     const mCod = document.getElementById('pat_manual_infra_codigo')?.value.trim();
+    if (!mNome || !mCod) {
+      if (!silent) alert('Na infracao manual, preencha nome e codigo.');
+      return null;
+    }
     if (mNome && mCod) {
       infracaoObj = { nome: mNome, codigo: mCod, artigo: '' };
     }
   }
 
   if (!infracaoObj) {
-    alert('Selecione a infracao.');
+    if (!silent) alert('Selecione a infracao.');
     return null;
   }
 
-  return { data, hora, local, obs, infracao: infracaoObj };
+  return { data, hora, local, obs, infracao: infracaoObj, locationMode, rodovia, km, localGps };
 }
 
 function pat_adicionarRegistro(placa, context) {
@@ -685,12 +1263,15 @@ function pat_salvarLotePlacas() {
   const context = pat_coletarContextoFormulario();
   if (!context) return;
 
+  const totalLote = PAT_LOTE_PLACAS.length;
   PAT_LOTE_PLACAS.forEach((placa) => pat_adicionarRegistro(placa, context));
+  pat_registrarContextoRecente(context);
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', true);
   pat_setBoxVisible('pat_result_area', false);
   pat_limparLotePlacas();
   pat_resetFormulario();
+  pat_mostrarFeedback(`Lote salvo com ${totalLote} placa(s).`, 'success');
   if (navigator.vibrate) navigator.vibrate([100, 40, 100, 40, 100]);
 }
 
@@ -704,14 +1285,20 @@ function pat_salvarVeiculo() {
     return;
   }
 
+  if (pat_getVeiculos().some((item) => item.placa === placa) && !confirm('Esta placa ja foi registrada neste turno. Deseja adicionar mesmo assim?')) {
+    return;
+  }
+
   const context = pat_coletarContextoFormulario();
   if (!context) return;
 
   pat_adicionarRegistro(placa, context);
+  pat_registrarContextoRecente(context);
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', true);
   pat_setBoxVisible('pat_result_area', false);
   pat_resetFormulario();
+  pat_mostrarFeedback(`Registro salvo para ${placa}.`, 'success');
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }
 
@@ -725,6 +1312,7 @@ function pat_renderizarLista() {
   if (veiculos.length === 0) {
     pat_setBoxVisible('pat_lista_card', false);
     if (totalEl) totalEl.textContent = 'Total de abordagens: 0';
+    pat_renderizarEstatisticas();
     return;
   }
 
@@ -760,6 +1348,8 @@ function pat_renderizarLista() {
     `;
     container.appendChild(item);
   });
+
+  pat_renderizarEstatisticas();
 }
 
 function pat_removerVeiculo(index) {
@@ -769,6 +1359,7 @@ function pat_removerVeiculo(index) {
   if (pat_getVeiculos().length === 0) {
     pat_setBoxVisible('pat_lista_card', false);
   }
+  pat_mostrarFeedback('Registro removido do turno.', 'warning');
 }
 
 function pat_limparTudo() {
@@ -777,6 +1368,7 @@ function pat_limparTudo() {
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', false);
   pat_setBoxVisible('pat_result_area', false);
+  pat_mostrarFeedback('Todos os registros do turno foram apagados.', 'warning');
 }
 
 function pat_gerarRelatorio() {
@@ -787,6 +1379,7 @@ function pat_gerarRelatorio() {
   const resultArea = document.getElementById('pat_result_area');
   if (resultText) resultText.innerText = txt;
   pat_setBoxVisible('pat_result_area', true);
+  pat_mostrarFeedback('Previa do patrulhamento gerada.', 'success');
 }
 
 function pat_encerrarPatrulhamento() {
@@ -819,6 +1412,72 @@ function pat_baixarTxt() {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+  pat_mostrarFeedback('TXT gerado com sucesso.', 'success');
+}
+
+function pat_gerarPdf() {
+  const resultText = document.getElementById('pat_result_text');
+  let texto = resultText?.innerText?.trim();
+
+  if (!texto) {
+    pat_gerarRelatorio();
+    texto = document.getElementById('pat_result_text')?.innerText?.trim();
+  }
+
+  if (!texto) {
+    alert('Finalize o patrulhamento antes de gerar o PDF.');
+    return;
+  }
+
+  const veiculos = pat_getVeiculos();
+  const topInfracao = pat_obterMaisFrequente(veiculos.map((item) => item?.infracao?.codigo ? `${item.infracao.codigo} - ${item.infracao.nome}` : item?.infracao?.nome));
+  const topRodovia = pat_obterMaisFrequente(veiculos.map((item) => pat_extrairRodoviaDoLocal(item.local)));
+  const dataArquivo = pat_getReport()?.buildFileDate?.(veiculos) || new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
+
+  if (!printWindow) {
+    alert('Nao foi possivel abrir a janela de impressao. Verifique o bloqueio de pop-up.');
+    return;
+  }
+
+  const html = `<!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <title>Patrulhamento PMRV ${dataArquivo}</title>
+    <style>
+      body { font-family: Arial, sans-serif; color:#111; margin:32px; }
+      h1 { margin:0 0 8px; font-size:24px; }
+      .meta { color:#444; margin-bottom:20px; font-size:12px; }
+      .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+      .card { border:1px solid #ddd; border-radius:10px; padding:12px; }
+      .label { font-size:11px; text-transform:uppercase; color:#666; font-weight:700; }
+      .value { margin-top:6px; font-size:14px; font-weight:700; }
+      pre { white-space:pre-wrap; font-family: Arial, sans-serif; line-height:1.45; font-size:12px; border:1px solid #ddd; border-radius:10px; padding:16px; }
+      @media print { body { margin:18px; } }
+    </style>
+  </head>
+  <body>
+    <h1>Patrulhamento PMRV-SC</h1>
+    <div class="meta">Data do arquivo: ${pat_escapeHtml(dataArquivo)} | Total de abordagens: ${veiculos.length}</div>
+    <div class="stats">
+      <div class="card"><div class="label">Rodovia líder</div><div class="value">${pat_escapeHtml(topRodovia.label)}</div></div>
+      <div class="card"><div class="label">Infração líder</div><div class="value">${pat_escapeHtml(topInfracao.label)}</div></div>
+      <div class="card"><div class="label">Última placa</div><div class="value">${pat_escapeHtml(veiculos[0]?.placa || '---')}</div></div>
+    </div>
+    <pre>${pat_escapeHtml(texto)}</pre>
+    <script>
+      window.onload = function() {
+        window.print();
+      };
+    <\/script>
+  </body>
+  </html>`;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  pat_mostrarFeedback('Janela de PDF/impressao aberta.', 'success');
 }
 
 function pat_setModoPlaca(modo) {
@@ -826,6 +1485,7 @@ function pat_setModoPlaca(modo) {
   document.getElementById('pat_placa_ocr_wrap')?.classList.toggle('hidden', modo !== 'ocr');
   document.getElementById('btn-pat-placa-manual')?.classList.toggle('btn-primary', modo === 'manual');
   document.getElementById('btn-pat-placa-ocr')?.classList.toggle('btn-primary', modo === 'ocr');
+  if (PAT_DRAFT_BOUND) pat_salvarRascunho();
 }
 
 function pat_setModoLocal(modo) {
@@ -833,6 +1493,7 @@ function pat_setModoLocal(modo) {
   document.getElementById('pat_local_manual_box')?.classList.toggle('hidden', modo !== 'manual');
   document.getElementById('btn-pat-local-gps')?.classList.toggle('btn-primary', modo === 'gps');
   document.getElementById('btn-pat-local-manual')?.classList.toggle('btn-primary', modo === 'manual');
+  if (PAT_DRAFT_BOUND) pat_salvarRascunho();
 }
 
 function pat_normalizarLocalGps(valor) {
@@ -851,6 +1512,7 @@ function pat_obterGPS() {
   }
 
   localInput.value = PAT_GPS_STATUS_LABEL;
+  pat_atualizarDraftStatus('Buscando local no GPS...', '#fcd34d');
 
   navigator.geolocation.getCurrentPosition(
     async pos => {
@@ -861,9 +1523,12 @@ function pat_obterGPS() {
       } else {
         localInput.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
       }
+      pat_salvarRascunho(true);
+      pat_mostrarFeedback('Local preenchido pelo GPS.', 'success');
     },
     err => {
       localInput.value = 'GPS nao obtido';
+      pat_salvarRascunho(true);
       alert('Erro GPS: ' + err.message);
     },
     { enableHighAccuracy: true, timeout: 5000 }
@@ -879,15 +1544,21 @@ window.pat_limparTudo = pat_limparTudo;
 window.pat_gerarRelatorio = pat_gerarRelatorio;
 window.pat_encerrarPatrulhamento = pat_encerrarPatrulhamento;
 window.pat_baixarTxt = pat_baixarTxt;
+window.pat_gerarPdf = pat_gerarPdf;
 window.pat_setModoPlaca = pat_setModoPlaca;
 window.pat_setModoLocal = pat_setModoLocal;
 window.pat_obterGPS = pat_obterGPS;
 window.pat_simularOCR = pat_simularOCR;
 window.pat_iniciarVozPlaca = pat_iniciarVozPlaca;
 window.pat_iniciarVozLotePlacas = pat_iniciarVozLotePlacas;
+window.pat_iniciarVozLocal = pat_iniciarVozLocal;
 window.pat_salvarLotePlacas = pat_salvarLotePlacas;
 window.pat_limparLotePlacas = pat_limparLotePlacas;
 window.pat_removerPlacaLote = pat_removerPlacaLote;
+window.pat_salvarFavoritoAtual = pat_salvarFavoritoAtual;
+window.pat_aplicarFavorito = pat_aplicarFavorito;
+window.pat_aplicarRecente = pat_aplicarRecente;
+window.pat_removerFavorito = pat_removerFavorito;
 
 document.addEventListener('DOMContentLoaded', pat_init);
 

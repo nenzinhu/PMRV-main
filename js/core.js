@@ -29,6 +29,16 @@ function core_formatarKM(input) {
 window.core_formatarKM = core_formatarKM;
 
 PMRV.core = (function() {
+  const domCache = new Map();
+
+  function getEl(id) {
+    if (!domCache.has(id)) {
+      const el = document.getElementById(id);
+      if (el) domCache.set(id, el);
+    }
+    return domCache.get(id);
+  }
+
   const SCREENS = [
     'home', 'assumir', 'patrulhamento', 'infracoes', 'envolvidos', 'pmrv', 'danos',
     'relatorio', 'pesos', 'tacografo', 'croqui', 'rodovias-ref', 'referencias-proximas', 'docs',

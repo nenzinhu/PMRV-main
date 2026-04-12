@@ -18,38 +18,51 @@ const CROQUI_DEFAULT_TRANSFORM = {
 };
 
 const CROQUI_ICON_MAP = {
-  v1: { emoji: '🚗', label: 'V1', fontSize: 40 },
-  v2: { emoji: '🚘', label: 'V2', fontSize: 40 },
-  moto: { emoji: '🏍️', label: 'MOTO', fontSize: 38 },
-  caminhao: { emoji: '🚚', label: 'CAMINHAO', fontSize: 40 },
-  carreta: { emoji: '🚛', label: 'CARRETA', fontSize: 44 },
-  onibus: { emoji: '🚌', label: 'ONIBUS', fontSize: 40 },
-  bicicleta: { emoji: '🚲', label: 'BIKE', fontSize: 36 },
-  viatura: { emoji: '🚓', label: 'PMRV', fontSize: 40 },
-  ambulancia: { emoji: '🚑', label: 'SAMU', fontSize: 40 },
-  reboque: { emoji: '🛻', label: 'REBOQUE', fontSize: 38 },
-  cone: { emoji: '⚠️', label: 'CONE', fontSize: 28 },
-  pare: { emoji: '🛑', label: 'PARE', fontSize: 34 },
-  preferencial: { emoji: '🔻', label: 'PREF.', fontSize: 34 },
-  semaforo: { emoji: '🚦', label: 'SEMAFORO', fontSize: 34 },
-  sem_verde: { emoji: '🟢', label: 'SEM. VERDE', fontSize: 28 },
-  sem_vermelho: { emoji: '🔴', label: 'SEM. VERM.', fontSize: 28 },
-  arvore: { emoji: '🌳', label: 'ARVORE', fontSize: 34 },
-  poste: { emoji: '💡', label: 'POSTE', fontSize: 28 },
-  norte: { emoji: '🧭', label: 'NORTE', fontSize: 34 },
-  buraco: { emoji: '🕳️', label: 'DEFEITO', fontSize: 30 },
-  animal_via: { emoji: '🐄', label: 'ANIMAL', fontSize: 36 },
-  pedestre: { emoji: '🚶', label: 'PEDESTRE', fontSize: 34 },
-  idoso: { emoji: '👨‍🦳', label: 'IDOSO', fontSize: 30 },
-  crianca: { emoji: '🧒', label: 'CRIANCA', fontSize: 30 },
-  cadeirante: { emoji: '👨‍🦽', label: 'PCD', fontSize: 30 },
-  oleo: { emoji: '🛢️', label: 'OLEO', fontSize: 30 },
-  vtr_emergencia: { emoji: '🚨', label: 'EMERG.', fontSize: 30 },
-  frenagem: { emoji: '⬛', label: 'FRENAGEM', fontSize: 18, asRect: true }
+  // Veículos
+  v1: { emoji: '🚗', label: 'V1', fontSize: 40, cat: 'veiculo' },
+  v2: { emoji: '🚘', label: 'V2', fontSize: 40, cat: 'veiculo' },
+  moto: { emoji: '🏍️', label: 'MOTO', fontSize: 38, cat: 'veiculo' },
+  caminhao: { emoji: '🚚', label: 'CAMINHÃO', fontSize: 40, cat: 'veiculo' },
+  carreta: { emoji: '🚛', label: 'CARRETA', fontSize: 44, cat: 'veiculo' },
+  onibus: { emoji: '🚌', label: 'ÔNIBUS', fontSize: 40, cat: 'veiculo' },
+  bicicleta: { emoji: '🚲', label: 'BIKE', fontSize: 36, cat: 'veiculo' },
+  viatura: { emoji: '🚓', label: 'PMRV', fontSize: 40, cat: 'veiculo' },
+  ambulancia: { emoji: '🚑', label: 'SAMU', fontSize: 40, cat: 'veiculo' },
+  reboque: { emoji: '🛻', label: 'REBOQUE', fontSize: 38, cat: 'veiculo' },
+  bombeiro: { emoji: '🚒', label: 'BOMBEIRO', fontSize: 40, cat: 'veiculo' },
+  vtr_socorro: { emoji: '🛻', label: 'SOCORRO', fontSize: 40, cat: 'veiculo' },
+  vtr_emergencia: { emoji: '🚨', label: 'EMERG.', fontSize: 30, cat: 'veiculo' },
+
+  // Sinalização
+  pare: { emoji: '🛑', label: 'PARE', fontSize: 34, cat: 'objeto' },
+  preferencial: { emoji: '🔻', label: 'PREF.', fontSize: 34, cat: 'objeto' },
+  semaforo: { emoji: '🚦', label: 'SEMÁF.', fontSize: 34, cat: 'objeto' },
+  sem_verde: { emoji: '🟢', label: 'VERDE', fontSize: 28, cat: 'objeto' },
+  sem_vermelho: { emoji: '🔴', label: 'VERM.', fontSize: 28, cat: 'objeto' },
+  cone: { emoji: '⚠️', label: 'CONE', fontSize: 28, cat: 'objeto' },
+  proibido: { emoji: '⛔', label: 'PROIB.', fontSize: 34, cat: 'objeto' },
+  seta_dir: { emoji: '➡️', label: 'FLUXO', fontSize: 30, cat: 'objeto' },
+  seta_esq: { emoji: '⬅️', label: 'FLUXO', fontSize: 30, cat: 'objeto' },
+  norte: { emoji: '🧭', label: 'NORTE', fontSize: 34, cat: 'objeto' },
+
+  // Obstáculos
+  pedestre: { emoji: '🚶', label: 'PEDESTRE', fontSize: 34, cat: 'obstaculo' },
+  idoso: { emoji: '👨‍🦳', label: 'IDOSO', fontSize: 30, cat: 'obstaculo' },
+  crianca: { emoji: '🧒', label: 'CRIANÇA', fontSize: 30, cat: 'obstaculo' },
+  cadeirante: { emoji: '👨‍🦽', label: 'PCD', fontSize: 30, cat: 'obstaculo' },
+  policial: { emoji: '👮', label: 'POLICIAL', fontSize: 34, cat: 'obstaculo' },
+  poste: { emoji: '💡', label: 'POSTE', fontSize: 28, cat: 'obstaculo' },
+  arvore: { emoji: '🌳', label: 'ÁRVORE', fontSize: 34, cat: 'obstaculo' },
+  fogo: { emoji: '🔥', label: 'FOGO', fontSize: 34, cat: 'obstaculo' },
+  oleo: { emoji: '🛢️', label: 'ÓLEO', fontSize: 30, cat: 'obstaculo' },
+  buraco: { emoji: '🕳️', label: 'DEFEITO', fontSize: 30, cat: 'obstaculo' },
+  animal_via: { emoji: '🐄', label: 'ANIMAL', fontSize: 36, cat: 'obstaculo' },
+  frenagem: { emoji: '⬛', label: 'FRENAGEM', fontSize: 18, asRect: true, cat: 'obstaculo' },
+  camera: { emoji: '📸', label: 'FOTO', fontSize: 30, cat: 'obstaculo' }
 };
 
 function croqui_getLayer(id) {
-  return document.getElementById(id);
+  return PMRV.core.getEl(id);
 }
 
 function croqui_composeTransform({ x, y, rotate, scaleX, scaleY }) {
@@ -89,8 +102,37 @@ function croqui_createGroup(idPrefix, type, transform) {
   return element;
 }
 
+function croqui_renderizarGridIcones() {
+  const grid = PMRV.core.getEl('croqui-icons-grid');
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <button class="btn croqui-icon-btn frequentes" data-click="croqui_inserirPistaSvg('waldermar viera SC-.svg')">
+      <span class="icon-emoji">🛣️</span>
+      <span class="icon-label">Pista W. Vieira</span>
+    </button>
+    <button class="btn croqui-icon-btn frequentes" data-click="croqui_inserirSvg('pedestre.svg', true)">
+      <img src="pedestre.svg" alt="" style="height:24px; filter:invert(1);">
+      <span class="icon-label">Pedestre (SVG)</span>
+    </button>
+  `;
+
+  Object.entries(CROQUI_ICON_MAP).forEach(([key, icon]) => {
+    const btn = document.createElement('button');
+    btn.className = `btn croqui-icon-btn ${icon.cat} hidden`;
+    btn.setAttribute('data-click', `croqui_inserirIcone('${key}')`);
+    btn.innerHTML = `
+      <span class="icon-emoji">${icon.emoji}</span>
+      <span class="icon-label">${icon.label}</span>
+    `;
+    grid.appendChild(btn);
+  });
+
+  croqui_filtrarIcones('veiculo');
+}
+
 function croqui_init() {
-  CROQUI_SVG = document.getElementById('croqui-svg');
+  CROQUI_SVG = PMRV.core.getEl('croqui-svg');
   if (!CROQUI_SVG || CROQUI_SVG.dataset.bound === 'true') return;
 
   CROQUI_SVG.dataset.bound = 'true';
@@ -103,6 +145,8 @@ function croqui_init() {
   CROQUI_SVG.addEventListener('touchmove', croqui_onMove, { passive: false });
   CROQUI_SVG.addEventListener('touchend', croqui_onEnd, { passive: false });
   CROQUI_SVG.addEventListener('touchcancel', croqui_onEnd, { passive: false });
+
+  croqui_renderizarGridIcones();
 }
 
 function croqui_adicionarVia(tipo) {
@@ -142,14 +186,14 @@ function croqui_adicionarVia(tipo) {
 }
 
 function croqui_abrirModalIcones() {
-  const modal = document.getElementById('croqui-modal-icones');
+  const modal = PMRV.core.getEl('croqui-modal-icones');
   if (!modal) return;
   modal.classList.remove('hidden');
   croqui_filtrarIcones('veiculo');
 }
 
 function croqui_fecharModal() {
-  document.getElementById('croqui-modal-icones')?.classList.add('hidden');
+  PMRV.core.getEl('croqui-modal-icones')?.classList.add('hidden');
 }
 
 function croqui_fecharModalOnBackdrop(event) {
@@ -157,8 +201,10 @@ function croqui_fecharModalOnBackdrop(event) {
 }
 
 function croqui_filtrarIcones(category) {
-  document.querySelectorAll('.croqui-icon-item').forEach(item => {
-    item.classList.toggle('hidden', !item.classList.contains(category));
+  document.querySelectorAll('.croqui-icon-btn').forEach(item => {
+    const isCat = item.classList.contains(category);
+    const isFreq = category === 'frequentes' && item.classList.contains('frequentes');
+    item.classList.toggle('hidden', !isCat && !isFreq);
   });
 
   document.querySelectorAll('.croqui-icon-tabs .btn').forEach(btn => {
@@ -432,46 +478,6 @@ function croqui_placeElement(element, transform) {
   return element;
 }
 
-async function croqui_aplicarModelo(tipo) {
-  if (!confirm('Isso ira limpar o desenho atual para aplicar o modelo. Continuar?')) return;
-
-  croqui_resetCanvas();
-
-  if (tipo === 'frontal') {
-    croqui_adicionarVia('reta');
-    const v1 = croqui_inserirIcone('v1');
-    croqui_placeElement(v1, { x: 80, y: 185 });
-    const v2 = croqui_inserirIcone('v2');
-    croqui_placeElement(v2, { x: 220, y: 185, rotate: 180 });
-    const impacto = await croqui_inserirSvg('3.1-colisao-frontal.svg');
-    croqui_placeElement(impacto, { x: 150, y: 185 });
-  } else if (tipo === 'traseira') {
-    croqui_adicionarVia('reta');
-    const v1 = croqui_inserirIcone('v1');
-    croqui_placeElement(v1, { x: 200, y: 185 });
-    const v2 = croqui_inserirIcone('v2');
-    croqui_placeElement(v2, { x: 100, y: 185 });
-    const impacto = await croqui_inserirSvg('3.2-colisao-traseira.svg');
-    croqui_placeElement(impacto, { x: 180, y: 185 });
-  } else if (tipo === 'transversal') {
-    croqui_adicionarVia('cruzamento');
-    const v1 = croqui_inserirIcone('v1');
-    croqui_placeElement(v1, { x: 130, y: 220, rotate: -90 });
-    const v2 = croqui_inserirIcone('v2');
-    croqui_placeElement(v2, { x: 220, y: 130, rotate: 180 });
-    const impacto = await croqui_inserirSvg('2.3-abalroamento-transversal.svg');
-    croqui_placeElement(impacto, { x: 130, y: 130 });
-  } else if (tipo === 'saida') {
-    croqui_adicionarVia('curva');
-    const v1 = croqui_inserirIcone('v1');
-    croqui_placeElement(v1, { x: 100, y: 100, rotate: 45 });
-    const impacto = await croqui_inserirSvg('5.3-saida-pista-capotamento.svg');
-    croqui_placeElement(impacto, { x: 120, y: 120 });
-  }
-
-  croqui_fecharModal();
-}
-
 window.croqui_init = croqui_init;
 window.croqui_adicionarVia = croqui_adicionarVia;
 window.croqui_abrirModalIcones = croqui_abrirModalIcones;
@@ -488,6 +494,5 @@ window.croqui_camada = croqui_camada;
 window.croqui_limpar = croqui_limpar;
 window.croqui_exportar = croqui_exportar;
 window.croqui_whatsapp = croqui_whatsapp;
-window.croqui_aplicarModelo = croqui_aplicarModelo;
 
 document.addEventListener('DOMContentLoaded', croqui_init);
