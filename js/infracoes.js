@@ -41,299 +41,118 @@
   ];
 
   const SEARCH_CODE_SHORTCUTS = [
-    { code: '736-62', terms: ['7366-2', '736-62', 'celular'] },
-    { code: '5185-1', terms: ['5185-1', '518-51', 'cinto'] },
-    { code: '5010-1', terms: ['5010-0', '501-00', 'sem cnh', 'sem acc'] },
-    { code: '5169-1', terms: ['7579-0', '757-90', 'recusa', 'bafometro'] }
+    { code: '736-62', terms: ['7366-2', '736-62', 'celular', 'telefone', 'mao no volante'] },
+    { code: '5185-1', terms: ['5185-1', '518-51', 'cinto', 'sem cinto', 'passageiro sem cinto'] },
+    { code: '5010-1', terms: ['5010-0', '501-00', 'sem cnh', 'sem acc', 'nao habilitado'] },
+    { code: '5169-1', terms: ['7579-0', '757-90', 'recusa', 'bafometro', 'etilometro', 'recusou bafometro'] },
+    { code: '165', terms: ['alcool', 'bebida', 'bebeu', 'dirigir sob influencia', 'embriaguez'] },
+    { code: '230 V', terms: ['licenciamento', 'atrasado', 'vencido', 'documento vencido', 'sem licenciamento'] },
+    { code: '230 XVIII', terms: ['mau estado', 'pneu', 'pneu careca', 'iluminacao', 'lanterna'] },
+    { code: '218', terms: ['velocidade', 'radar', 'excesso de velocidade', 'acima do limite'] }
   ];
 
-  function getElements() {
-    if (state.elements) return state.elements;
-    state.elements = {
-      search: document.getElementById('infra_search'),
-      category: document.getElementById('infra_category'),
-      measure: document.getElementById('infra_measure'),
-      clear: document.getElementById('infra_clear'),
-      tabConsulta: document.getElementById('infra_tab_consulta'),
-      tabFrequentes: document.getElementById('infra_tab_frequentes'),
-      panelConsulta: document.getElementById('infra_panel_consulta'),
-      panelFrequentes: document.getElementById('infra_panel_frequentes'),
-      totalCount: document.getElementById('infra_totalCount'),
-      filteredCount: document.getElementById('infra_filteredCount'),
-      categoryCount: document.getElementById('infra_categoryCount'),
-      status: document.getElementById('infra_status'),
-      summary: document.getElementById('infra_summary'),
-      tableBody: document.getElementById('infra_tableBody'),
-      emptyState: document.getElementById('infra_emptyState')
-    };
-    return state.elements;
+  /**
+   * Calculador de Velocidade Considerada (Resolução 798/20 CONTRAN)
+   * Até 100 km/h: Medida - 7 km/h
+   * Acima de 100 km/h: Medida - 7% (arredondado)
+   */
+  function calculateConsideredSpeed(measured) {
+    if (measured <= 100) return measured - 7;
+    return Math.round(measured * 0.93);
   }
 
-  function repairBrokenText(text) {
-    return String(text || '').trim();
-  }
-
-  function safeText(value) {
-    const text = String(value || '').trim();
-    if (!text) return '';
-    return repairBrokenText(text);
-  }
-
-  function normalizeHeader(value) {
-    return safeText(value)
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
-  }
-
-  function normalizeSearchText(value) {
-    return safeText(value)
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
-  }
-
-  function resolveCodeShortcut(term) {
-    const normalizedTerm = normalizeSearchText(term);
-    if (!normalizedTerm) return '';
-    for (let entry of SEARCH_CODE_SHORTCUTS) {
-      if (entry.terms.some(t => normalizeSearchText(t) === normalizedTerm)) return entry.code;
-    }
-    return '';
-  }
-
-  function parseCsv(text) {
-    const rows = [];
-    let row = [];
-    let cell = '';
-    let quoted = false;
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const next = text[i + 1];
-      if (char === '"') {
-        if (quoted && next === '"') { cell += '"'; i++; }
-        else { quoted = !quoted; }
-        continue;
-      }
-      if (char === ',' && !quoted) { row.push(cell); cell = ''; continue; }
-      if ((char === '\n' || char === '\r') && !quoted) {
-        if (char === '\r' && next === '\n') i++;
-        row.push(cell);
-        if (row.some(c => c.trim() !== '')) rows.push(row);
-        row = []; cell = '';
-        continue;
-      }
-      cell += char;
-    }
-    if (cell.length || row.length) {
-      row.push(cell);
-      if (row.some(c => c.trim() !== '')) rows.push(row);
-    }
-    return rows;
-  }
-
-  function findHeaderIndex(headers, options) {
-    for (let i = 0; i < headers.length; i++) {
-      if (options.some(opt => headers[i] === opt)) return i;
-    }
-    return -1;
-  }
-
-  function normalizeCategory(value) {
-    const normalized = normalizeHeader(value);
-    if (!normalized) return 'Sem categoria';
-    if (normalized.includes('gravissima') || normalized.includes('graviss')) return 'Gravíssima';
-    if (normalized.includes('grave')) return 'Grave';
-    if (normalized.includes('media')) return 'Média';
-    if (normalized.includes('leve')) return 'Leve';
-    return 'Sem categoria';
-  }
-
-  function categoryClass(value) {
-    const normalized = normalizeHeader(value);
-    if (normalized.includes('gravissima')) return 'gravissima';
-    if (normalized.includes('grave')) return 'grave';
-    if (normalized.includes('media')) return 'media';
-    if (normalized.includes('leve')) return 'leve';
-    return 'sem-categoria';
-  }
-
-  function normalizeMeasure(value) {
-    const normalized = normalizeHeader(value);
-    if (!normalized) return '';
-    if (normalized.includes('remoc')) return 'REMOÇÃO';
-    if (normalized.includes('retenc')) return 'RETENÇÃO';
-    return safeText(value).toUpperCase();
-  }
-
-  function measureClass(value) {
-    const normalized = normalizeHeader(value);
-    if (normalized.includes('remoc')) return 'remocao';
-    if (normalized.includes('retenc')) return 'retencao';
-    return 'none';
-  }
-
-  function parseValue(value) {
-    if (String(value).includes('NIC')) return 'NIC';
-    const text = safeText(value).replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
-    const parsed = Number(text);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  function formatCurrency(value) {
-    if (value === 'NIC') return 'Multa NIC';
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  function escapeHtml(value) {
-    return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  function fillSelect(select, values, emptyLabel) {
-    const current = select.value;
-    select.innerHTML = '<option value="">' + emptyLabel + '</option>' + values.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join('');
-    select.value = values.indexOf(current) >= 0 ? current : '';
-  }
-
-  function buildSearchIndex(record) {
-    return normalizeSearchText([record.codigo, record.descricao, record.artigo, record.infrator, record.categoria, record.medida].join(' '));
-  }
-
-  function expandSearchIntent(term) {
-    const expanded = [term];
-    SEARCH_INTENT_RULES.forEach(rule => {
-      if (rule.triggers.some(t => term.indexOf(normalizeSearchText(t)) >= 0)) {
-        rule.expansions.forEach(item => expanded.push(normalizeSearchText(item)));
-      }
-    });
-    return Array.from(new Set(expanded.join(' ').split(/\s+/).filter(Boolean)));
-  }
-
-  function mapRecords(rows) {
-    if (!rows.length) return [];
+  function getEnquadramentoVelocidade(limit, measured) {
+    const considered = calculateConsideredSpeed(measured);
+    if (considered <= limit) return null;
     
-    // Mapeamento baseado nos cabeÃ§alhos detectados ou Ã­ndices fixos (fallback)
-    const headers = rows[0].map(normalizeHeader);
-    console.log('[Infra] CabeÃ§alhos normalizados:', headers);
+    const percent = ((considered - limit) / limit) * 100;
     
-    const idx = {
-      codigo: findHeaderIndex(headers, ['codigo infracao', 'codigo', 'cod']),
-      descricao: findHeaderIndex(headers, ['descricao da infracao', 'descricao infracao', 'descricao']),
-      artigo: findHeaderIndex(headers, ['art ctb decreto', 'artigo', 'art']),
-      infrator: findHeaderIndex(headers, ['infrator']),
-      valor: findHeaderIndex(headers, ['valor real r', 'valor real rs', 'valor']),
-      categoria: findHeaderIndex(headers, ['categoria']),
-      medida: findHeaderIndex(headers, ['medida administrativa', 'medida'])
-    };
-
-    // Ãndices de garantia (baseados na estrutura padrÃ£o: Cod, Desc, Art, Inf, Val, Cat, Med)
-    const COD_IDX = idx.codigo !== -1 ? idx.codigo : 0;
-    const DSC_IDX = idx.descricao !== -1 ? idx.descricao : 1;
-    const ART_IDX = idx.artigo !== -1 ? idx.artigo : 2;
-    const INF_IDX = idx.infrator !== -1 ? idx.infrator : 3;
-    const VAL_IDX = idx.valor !== -1 ? idx.valor : 4;
-    const CAT_IDX = idx.categoria !== -1 ? idx.categoria : 5;
-    const MED_IDX = idx.medida !== -1 ? idx.medida : 6;
-
-    const records = rows.slice(1).map((row, i) => {
-      if (!row || row.length < 2) return null;
-      
-      const record = {
-        codigo: safeText(row[COD_IDX] || ''),
-        descricao: safeText(row[DSC_IDX] || ''),
-        artigo: safeText(row[ART_IDX] || ''),
-        infrator: safeText(row[INF_IDX] || ''),
-        categoria: normalizeCategory(row[CAT_IDX] || ''),
-        medida: normalizeMeasure(row[MED_IDX] || ''),
-        valor: parseValue(row[VAL_IDX] || '')
-      };
-      record.search = buildSearchIndex(record);
-      return record;
-    }).filter(r => r !== null && (r.codigo || r.descricao));
-
-    console.log(`[Infra] Mapeamento concluÃ­do: ${records.length} registros processados.`);
-    return records;
+    if (percent <= 20) return { art: '218 I', desc: 'Até 20% acima do limite', cat: 'Média', pontos: 4 };
+    if (percent <= 50) return { art: '218 II', desc: 'Entre 20% e 50% acima do limite', cat: 'Grave', pontos: 5 };
+    return { art: '218 III', desc: 'Acima de 50% do limite (SUSPENSÃO)', cat: 'Gravíssima', pontos: 7, suspensao: true };
   }
 
-  function render(records) {
-    const elements = getElements();
-    const container = document.getElementById('infra_list_container');
-    if (!container) return;
+  function renderVelocityTool() {
+    const container = document.getElementById('infra_velocity_tool');
+    if (container) return; // Já existe
 
-    elements.totalCount.textContent = state.records.length.toLocaleString('pt-BR');
-    elements.filteredCount.textContent = records.length.toLocaleString('pt-BR');
-    elements.categoryCount.textContent = state.categories.length;
-
-    if (!records.length) {
-      container.innerHTML = '';
-      elements.emptyState.hidden = false;
-      return;
-    }
-
-    elements.emptyState.hidden = true;
-    container.innerHTML = records.map((record, index) => {
-      const catClass = categoryClass(record.categoria);
-      const medClass = measureClass(record.medida);
-      const cardId = `infra-card-${index}`;
-      
-      return `
-        <div class="infra-card" id="${cardId}" data-cat="${record.categoria}" onclick="infra_toggleCard('${cardId}')">
-          <div class="infra-card-header">
-            <div class="infra-card-main">
-              <span class="infra-card-code">${escapeHtml(record.codigo)}</span>
-              <div class="infra-card-title">${escapeHtml(record.descricao)}</div>
-            </div>
-            <div class="infra-card-chevron">▼</div>
+    const listContainer = document.getElementById('infra_list_container');
+    const tool = document.createElement('div');
+    tool.id = 'infra_velocity_tool';
+    tool.className = 'infra-card velocity-helper';
+    tool.style.border = '2px solid var(--primary)';
+    tool.style.background = 'rgba(52, 152, 219, 0.1)';
+    tool.innerHTML = `
+      <div class="infra-card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <div class="infra-card-main">
+          <span class="infra-card-code">ASSISTENTE</span>
+          <div class="infra-card-title">Cálculo de Velocidade (Res. 798/20)</div>
+        </div>
+      </div>
+      <div class="infra-card-content" style="padding: 15px; display: block;">
+        <div class="flex gap-12" style="margin-bottom: 15px;">
+          <div style="flex:1;">
+            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Limite da Via (km/h)</label>
+            <input type="number" id="v_limit" class="input" placeholder="80" style="width:100%;">
           </div>
-          
-          <div class="infra-card-content">
-            <div class="infra-detail-row">
-              <div class="infra-detail-item">
-                <span class="infra-detail-label">Amparo Legal</span>
-                <span class="infra-detail-value">${escapeHtml(record.artigo || 'Não informado')}</span>
-              </div>
-              <div class="infra-detail-item">
-                <span class="infra-detail-label">Infrator</span>
-                <span class="infra-detail-value">${escapeHtml(record.infrator || 'Não informado')}</span>
-              </div>
-              <div class="infra-detail-item">
-                <span class="infra-detail-label">Valor da Multa</span>
-                <span class="infra-detail-value" style="color:var(--primary); font-weight:800;">${escapeHtml(formatCurrency(record.valor))}</span>
-              </div>
-            </div>
-            
-            <div class="infra-badge-row">
-              <span class="infra-badge ${catClass}">${escapeHtml(record.categoria)}</span>
-              <span class="infra-measure ${medClass}">${escapeHtml(record.medida || 'Sem medida')}</span>
-            </div>
+          <div style="flex:1;">
+            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Veloc. Medida (km/h)</label>
+            <input type="number" id="v_measured" class="input" placeholder="110" style="width:100%;">
           </div>
         </div>
-      `;
-    }).join('');
-  }
+        <div id="v_result" style="padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); min-height: 40px; font-size: 13px;">
+          Insira os valores para enquadramento automático...
+        </div>
+      </div>
+    `;
 
-  window.infra_toggleCard = (id) => {
-    const card = document.getElementById(id);
-    if (!card) return;
-    
-    // Fecha outros cards abertos (opcional, para foco Ãºnico)
-    document.querySelectorAll('.infra-card.expanded').forEach(c => {
-      if (c.id !== id) c.classList.remove('expanded');
+    listContainer.prepend(tool);
+
+    const inputs = tool.querySelectorAll('input');
+    inputs.forEach(input => {
+      input.addEventListener('input', () => {
+        const limit = parseFloat(document.getElementById('v_limit').value);
+        const measured = parseFloat(document.getElementById('v_measured').value);
+        const resDiv = document.getElementById('v_result');
+
+        if (!limit || !measured) {
+          resDiv.innerHTML = 'Aguardando valores...';
+          return;
+        }
+
+        const considered = calculateConsideredSpeed(measured);
+        const enq = getEnquadramentoVelocidade(limit, measured);
+
+        if (!enq) {
+          resDiv.innerHTML = `<span style="color:#2ecc71;">✅ Velocidade Considerada: <b>${considered} km/h</b>. Dentro do limite.</span>`;
+        } else {
+          resDiv.innerHTML = `
+            <div style="color:var(--text);">Velocidade Considerada: <b style="color:var(--primary); font-size:16px;">${considered} km/h</b></div>
+            <div style="margin-top:8px; font-weight:bold; color:${enq.suspensao ? '#e74c3c' : 'var(--text)'};">
+              Enquadramento: Art. ${enq.art} (${enq.desc})
+            </div>
+            <div style="font-size:11px; margin-top:4px;">
+              Categoria: <span class="infra-badge ${categoryClass(enq.cat)}">${enq.cat}</span> | Pontos: ${enq.pontos}
+              ${enq.suspensao ? ' | <b style="color:#e74c3c;">GERA SUSPENSÃO DA CNH</b>' : ''}
+            </div>
+          `;
+        }
+      });
     });
-    
-    card.classList.toggle('expanded');
-    if (card.classList.contains('expanded')) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  };
+  }
 
   function applyFilters() {
     const elements = getElements();
     const term = normalizeSearchText(elements.search.value);
+    
+    // Se buscar por velocidade, mostra o assistente
+    if (term.includes('velocidade') || term.includes('radar') || term.includes('km/h')) {
+      renderVelocityTool();
+    } else {
+      const tool = document.getElementById('infra_velocity_tool');
+      if (tool) tool.remove();
+    }
+
     const shortcutCode = resolveCodeShortcut(term);
     const normalizedShortcutCode = normalizeSearchText(shortcutCode);
     const category = elements.category.value;
@@ -341,10 +160,9 @@
     
     const filtered = state.records.filter(r => {
       if (term && r.search.indexOf(term) === -1) {
-        if (normalizedShortcutCode && normalizeSearchText(r.codigo) === normalizedShortcutCode) {
+        if (normalizedShortcutCode && (normalizeSearchText(r.codigo).indexOf(normalizedShortcutCode) >= 0 || normalizeSearchText(r.artigo).indexOf(normalizedShortcutCode) >= 0)) {
           return (!category || r.categoria === category) && (!measure || r.medida === measure);
         }
-        // Tenta expansÃ£o de sinÃ´nimos se a busca direta falhar
         const termParts = expandSearchIntent(term);
         if (!termParts.every(p => r.search.indexOf(p) >= 0)) return false;
       }
@@ -354,6 +172,7 @@
     });
     render(filtered);
   }
+
 
   function decodeEmbeddedBase64(base64) {
     try {

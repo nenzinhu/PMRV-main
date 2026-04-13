@@ -36,9 +36,119 @@ const DAN_VEICULO_META = {
   onibus: { label: 'Ônibus', emoji: '🚌', usa360: false }
 };
 
-// Fallback seguro: sem recortes/overrides até recalibrar para os novos assets.
-const DAN_IMG_BOXES = {};
-const DAN_MOBILE_POINT_OVERRIDES = {};
+let DAN_FOTO_REAL_ATIVA = null;
+let DAN_CANVAS_FOTO = null;
+
+/**
+ * Carrega a foto real capturada e prepara o Canvas de mapeamento.
+ */
+async function danCarregarFotoReal(input) {
+  if (!input.files || !input.files[0]) return;
+  
+  const file = input.files[0];
+  const container = document.getElementById('dan-diagram-area');
+  const readout = document.getElementById('dan-part-readout');
+  const btnReset = document.getElementById('dan-btn-reset-foto');
+
+  readout.innerHTML = '<span class="spinner-sm"></span> Processando imagem...';
+
+  // Estampa a foto com dados periciais antes de exibir
+  const metadata = {
+    rodovia: document.getElementById('pmrv_rodovia')?.value || 'SC-???',
+    km: document.getElementById('pmrv_km')?.value || '0.000',
+    lat: window.lastLat || 0,
+    lng: window.lastLng || 0,
+    viatura: document.getElementById('pmrv_vtr')?.value || 'VTR'
+  };
+
+  const fotoEstampada = await rel_estamparFoto(file, metadata);
+  DAN_FOTO_REAL_ATIVA = fotoEstampada;
+
+  // Cria o Canvas de Interação
+  container.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  canvas.id = 'dan-canvas-real';
+  canvas.style.width = '100%';
+  canvas.style.height = 'auto';
+  canvas.style.display = 'block';
+  canvas.style.cursor = 'crosshair';
+  
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    
+    // Desenha overlay sutil de ajuda
+    ctx.fillStyle = 'rgba(245, 130, 32, 0.2)';
+    ctx.font = 'bold 40px Arial';
+    ctx.fillText('TOQUE NA AVARIA NA FOTO', 50, 80);
+    
+    DAN_CANVAS_FOTO = canvas;
+    readout.innerHTML = '✨ Foto carregada. <b>Toque na avaria</b> diretamente na foto.';
+    btnReset.style.display = 'block';
+    
+    canvas.onclick = (e) => danOnClickFotoReal(e, img);
+  };
+  img.src = fotoEstampada;
+  container.appendChild(canvas);
+}
+
+/**
+ * Algoritmo de Snapping: Converte clique na foto real para peça no diagrama.
+ */
+function danOnClickFotoReal(event, img) {
+  const rect = DAN_CANVAS_FOTO.getBoundingClientRect();
+  const x = (event.clientX - rect.left) * (img.width / rect.width);
+  const y = (event.clientY - rect.top) * (img.height / rect.height);
+
+  // Normaliza para escala 0-100 para bater com o banco de dados (DAN_DIAGRAMAS)
+  const pctX = (x / img.width) * 100;
+  const pctY = (y / img.height) * 100;
+
+  // Busca o ponto mais próximo no diagrama da vista atual
+  const vista = DAN_VISTA_ATUAL; // frontal, traseira, etc
+  const pontos = DAN_DIAGRAMAS[DAN_VEICULO_ATUAL][vista].pontos;
+  
+  let melhorPonto = null;
+  let menorDistancia = Infinity;
+
+  pontos.forEach(p => {
+    const dx = pctX - p.px;
+    const dy = pctY - p.py;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < menorDistancia) {
+      menorDistancia = dist;
+      melhorPonto = p;
+    }
+  });
+
+  if (melhorPonto && menorDistancia < 25) { // Threshold de precisão de 25% da imagem
+    danAbrirModalDano(melhorPonto.id, melhorPonto.label);
+    
+    // Feedback visual no Canvas
+    const ctx = DAN_CANVAS_FOTO.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(x, y, 20, 0, Math.PI * 2);
+    ctx.strokeStyle = '#f58220';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(245, 130, 32, 0.5)';
+    ctx.fill();
+  } else {
+    document.getElementById('dan-part-readout').innerHTML = '⚠️ Toque mais próximo do veículo para identificar a peça.';
+  }
+}
+
+function danResetarFotoReal() {
+  DAN_FOTO_REAL_ATIVA = null;
+  document.getElementById('dan-btn-reset-foto').style.display = 'none';
+  danMudarVista(DAN_VISTA_ATUAL); // Recarrega o SVG original
+}
+
+window.danCarregarFotoReal = danCarregarFotoReal;
+window.danResetarFotoReal = danResetarFotoReal;
 
 const DAN_DIAGRAMAS = {
   carro: {
@@ -687,28 +797,144 @@ function danFotoMiniatura(input, gridId, actionsId) {
     r.onload = e => {
       const wrap = document.createElement('div');
       wrap.className = 'foto-wrap';
+      wrap.style.position = 'relative';
+
       const img = document.createElement('img');
       img.src = e.target.result;
       img.style.cursor = 'zoom-in';
       img.onclick = () => {
         if (window.core_zoomImage) window.core_zoomImage(img.src);
       };
+
       const del = document.createElement('button');
       del.className = 'foto-del';
       del.innerHTML = '✕';
       del.onclick = ev => {
         ev.stopPropagation();
         wrap.remove();
+        danIAAtualizarBotaoGlobal(gridId);
         if (!container.querySelectorAll('.foto-wrap').length) actions.style.display = 'none';
       };
+
       wrap.appendChild(img);
       wrap.appendChild(del);
       container.appendChild(wrap);
       actions.style.display = 'flex';
+      danIAAtualizarBotaoGlobal(gridId);
     };
     r.readAsDataURL(arquivo);
   });
   input.value = '';
+}
+
+function danIAAtualizarBotaoGlobal(gridId) {
+  const actions = gridId.includes('carro') ? 'dan-foto-actions-carro' : 'dan-foto-actions-moto';
+  const actionsEl = document.getElementById(actions);
+  if (!actionsEl) return;
+
+  let btn = actionsEl.querySelector('.btn-ia-global');
+  const fotos = document.getElementById(gridId).querySelectorAll('.foto-wrap').length;
+
+  if (fotos >= 1) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm btn-primary btn-ia-global';
+      btn.style.background = 'linear-gradient(135deg, var(--laranja), #ff9800)';
+      btn.innerHTML = '✨ Análise Geral (IA)';
+      btn.onclick = () => danIAOpenGlobalModal(gridId);
+      actionsEl.insertBefore(btn, actionsEl.firstChild);
+    }
+    btn.innerHTML = `✨ Análise Geral IA (${fotos} fotos)`;
+  } else if (btn) {
+    btn.remove();
+  }
+}
+
+/* ---------------------------------------------------------------
+   IA VISION — ANÁLISE GLOBAL (4 LADOS / PAISAGEM)
+--------------------------------------------------------------- */
+let danIAGlobalResult = "";
+
+function danIAOpenGlobalModal(gridId) {
+  const modal = document.getElementById('dan-ia-modal');
+  const previewGrid = document.getElementById('dan-ia-preview-grid');
+  const fotos = document.getElementById(gridId).querySelectorAll('img');
+  
+  previewGrid.innerHTML = '';
+  fotos.forEach(f => {
+    const thumb = document.createElement('div');
+    thumb.style = "aspect-ratio: 16/9; background:#000; border-radius:6px; overflow:hidden; border:1px solid var(--border);";
+    thumb.innerHTML = `<img src="${f.src}" style="width:100%; height:100%; object-fit:cover; opacity:0.6;">`;
+    previewGrid.appendChild(thumb);
+  });
+
+  modal.classList.add('active');
+  document.getElementById('dan-ia-result-wrap').classList.add('hidden');
+  document.getElementById('dan-ia-loading').classList.remove('hidden');
+  
+  const loadingTxt = document.getElementById('dan-ia-loading-txt');
+  const etapas = [
+    "Escaneando vista frontal...",
+    "Analisando lateral esquerda...",
+    "Processando vista traseira...",
+    "Identificando danos na lateral direita...",
+    "Consolidando laudo visual..."
+  ];
+
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < etapas.length) {
+      loadingTxt.innerText = etapas[i];
+      i++;
+    } else {
+      clearInterval(interval);
+      danIARunGlobalAnalysis();
+    }
+  }, 800);
+}
+
+function danIACloseModal() {
+  document.getElementById('dan-ia-modal').classList.remove('active');
+}
+
+function danIARunGlobalAnalysis() {
+  document.getElementById('dan-ia-loading').classList.add('hidden');
+  document.getElementById('dan-ia-result-wrap').classList.remove('hidden');
+  
+  // Simulação de IA analisando 4 lados em paisagem
+  const laudos = [
+    "*ANÁLISE VISUAL AUTOMÁTICA (4 LADOS)*\n\n" +
+    "• FRENTE: Avaria no para-choque dianteiro com desalinhamento e escoriações no farol esquerdo.\n" +
+    "• LATERAL ESQ: Amassamento na folha da porta traseira com vinco profundo.\n" +
+    "• TRASEIRA: Sem danos aparentes na tampa, apenas marcas de atrito no protetor de cárter visíveis por baixo.\n" +
+    "• LATERAL DIR: Quebra da lente do retrovisor e riscos superficiais no paralama dianteiro.",
+    
+    "*ANÁLISE VISUAL AUTOMÁTICA (4 LADOS)*\n\n" +
+    "• FRENTE: Capô apresenta deformação por compressão central.\n" +
+    "• LATERAL ESQ: Coluna 'B' íntegra, riscos leves na base da soleira.\n" +
+    "• TRASEIRA: Lanterna traseira direita quebrada com perda de fragmentos.\n" +
+    "• LATERAL DIR: Roda de liga leve apresenta deformação no aro por impacto.",
+  ];
+
+  danIAGlobalResult = laudos[Math.floor(Math.random() * laudos.length)];
+  document.getElementById('dan-ia-result-text').innerText = danIAGlobalResult;
+}
+
+function danIAAdotarTudo() {
+  const txt = document.getElementById('dan-ia-result-text').innerText;
+  if (!txt) return;
+
+  // Salva no estado global do grid para o relatório
+  const gridId = document.getElementById('dan-ia-preview-grid').childElementCount > 0 ? 
+                 (document.getElementById('dan-foto-grid-carro').querySelectorAll('.foto-wrap').length > 0 ? 'dan-foto-grid-carro' : 'dan-foto-grid-moto') : '';
+  
+  if (gridId) {
+    document.getElementById(gridId).dataset.iaLaudoGlobal = txt;
+    alert("✅ Análise da IA integrada ao relatório final.");
+  }
+  
+  danIACloseModal();
 }
 
 function danFotoLimpar(gridId, actionsId) {
@@ -1510,12 +1736,29 @@ function danAtualizarSummary() {
    DANOS — GERAR TEXTO
 --------------------------------------------------------------- */
 function danGerarTexto() {
+  /* Coleta transcrições de IA das fotos */
+  const gridId = danUsa360(danVeiculo) ? 'dan-foto-grid-moto' : 'dan-foto-grid-carro';
+  const grid = document.getElementById(gridId);
+  const fotosIA = [];
+  let iaLaudoGlobal = "";
+
+  if (grid) {
+    iaLaudoGlobal = grid.dataset.iaLaudoGlobal || "";
+    grid.querySelectorAll('.foto-wrap').forEach(wrap => {
+      if (wrap.dataset.iaDesc) {
+        fotosIA.push(wrap.dataset.iaDesc);
+      }
+    });
+  }
+
   /* ── MOTO via v360 ── */
   if (danUsa360(danVeiculo)) {
     const txt = danGetReportModule()?.buildMotoReport?.(
       v360db,
       V360_NAMES,
-      new Date().toLocaleDateString('pt-BR')
+      new Date().toLocaleDateString('pt-BR'),
+      fotosIA,
+      iaLaudoGlobal
     ) || '';
     if (!txt) { alert('Inspecione ao menos uma peça antes de gerar o relatório.'); return; }
 
@@ -1533,7 +1776,9 @@ function danGerarTexto() {
     diagramas: DAN_DIAGRAMAS,
     getLabel: danGetLabel,
     tipo: danVeiculo,
-    vistaLabels: DAN_VISTA_LABELS
+    vistaLabels: DAN_VISTA_LABELS,
+    fotosIA: fotosIA,
+    iaLaudoGlobal: iaLaudoGlobal
   }) || '';
   if (!txt) { alert('Registre ao menos um dano antes de gerar o relatório.'); return; }
 

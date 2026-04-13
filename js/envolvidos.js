@@ -131,6 +131,37 @@ function env_iniciarVozRelato(btn) {
   recognition.start();
 }
 
+function env_validarCPF(cpf) {
+  cpf = cpf.replace(/[^\d]+/g, '');
+  if (cpf == '' || cpf.length != 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let add = 0;
+  for (let i = 0; i < 9; i++) add += parseInt(cpf.charAt(i)) * (10 - i);
+  let rev = 11 - (add % 11);
+  if (rev == 10 || rev == 11) rev = 0;
+  if (rev != parseInt(cpf.charAt(9))) return false;
+  add = 0;
+  for (let i = 0; i < 10; i++) add += parseInt(cpf.charAt(i)) * (11 - i);
+  rev = 11 - (add % 11);
+  if (rev == 10 || rev == 11) rev = 0;
+  if (rev != parseInt(cpf.charAt(10))) return false;
+  return true;
+}
+
+function env_onCPFBlur(input) {
+  const val = input.value.replace(/[^\d]+/g, '');
+  if (val.length === 11) {
+    if (!env_validarCPF(val)) {
+      input.style.border = '1px solid #ef4444';
+      input.title = 'CPF Inválido';
+    } else {
+      input.style.border = '';
+      input.title = '';
+      // Formata CPF
+      input.value = val.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    }
+  }
+}
+
 function env_adicionar() {
   const lista = document.getElementById('env_lista');
   const n = lista.querySelectorAll('.person-card').length + 1;
@@ -155,8 +186,14 @@ function env_adicionar() {
           </select>
         </div>
         <div class="form-field">
-          <label class="field-label">Telefone de Contato</label>
-          <input type="tel" class="contato" data-input="mascaraTelefone(this)" placeholder="(00) 00000-0000" maxlength="15" autocomplete="tel">
+          <label class="field-label">Vínculo com Veículo</label>
+          <select class="vinculo_veiculo">
+            <option value="N/A">Nenhum / Não aplicável</option>
+            <option value="V1">Veículo 1 (V1)</option>
+            <option value="V2">Veículo 2 (V2)</option>
+            <option value="V3">Veículo 3 (V3)</option>
+            <option value="OUTRO">Outro Veículo</option>
+          </select>
         </div>
       </div>
       
@@ -165,8 +202,39 @@ function env_adicionar() {
         <input type="text" class="nome" placeholder="Nome completo do envolvido" spellcheck="true" autocomplete="name" onblur="env_capitalize(this)">
       </div>
 
+      <div class="form-row form-row-2">
+        <div class="form-field">
+          <label class="field-label">CPF / Documento</label>
+          <input type="text" class="cpf" placeholder="000.000.000-00" onblur="env_onCPFBlur(this)">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Telefone de Contato</label>
+          <input type="tel" class="contato" placeholder="(00) 00000-0000" maxlength="15" autocomplete="tel">
+        </div>
+      </div>
+
+      <div class="form-row form-row-2">
+        <div class="form-field">
+          <label class="field-label">CNH (Número)</label>
+          <input type="text" class="cnh" placeholder="Número da CNH">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Categoria CNH</label>
+          <select class="cnh_cat">
+            <option value="N/A">Nenhuma</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="AB">AB</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="ACC">ACC</option>
+          </select>
+        </div>
+      </div>
+
       <div class="form-field">
-        <label class="field-label">Veículo (Marca / Modelo / Placa)</label>
+        <label class="field-label">Marca / Modelo / Placa do Veículo</label>
         <input type="text" class="marca" placeholder="Ex: VW/Gol (ABC-1234)" spellcheck="false" onblur="env_capitalize(this)">
       </div>
 

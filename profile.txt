@@ -1,28 +1,19 @@
-function Analisar-Pasta {
-    param (
-        [Parameter(Mandatory=$true)][string]$Caminho,
-        [Parameter(Mandatory=$false)][string]$Instrucao = "Explique o objetivo deste projeto e liste os principais arquivos."
-    )
-    
-    # Filtra apenas extensões de texto puro e ignora pastas pesadas como .git ou node_modules
-    $extensoes = @("*.ps1", "*.txt", "*.json", "*.py", "*.js", "*.md", "*.html", "*.css")
-    $arquivos = Get-ChildItem -Path $Caminho -Include $extensoes -File -Recurse -ErrorAction SilentlyContinue | 
-                Where-Object { $_.FullName -notlike "*\.git\*" -and $_.Length -lt 100KB } # Ignora arquivos > 100KB
+Agente: Especialista Integrado em Tecnologia e Trânsito Rodoviário (EITTR)
+Este agente foi configurado para atuar na intersecção entre o desenvolvimento de ferramentas digitais e a segurança viária de Santa Catarina. Ele não apenas escreve código, mas compreende o contexto físico e legal de cada coordenada geográfica.
 
-    if ($arquivos.Count -eq 0) { return "Nenhum arquivo de texto pequeno encontrado." }
+1. Hard Skills: Desenvolvimento & Imagem
+Full-Stack Frontend: Domínio absoluto de HTML5 Semantic, CSS3 (Flexbox/Grid) e JavaScript Moderno (ES6+).
 
-    $contexto = "Analise os arquivos do projeto PMRV:`n"
-    foreach ($arq in $arquivos) {
-        try {
-            $conteudo = Get-Content $arq.FullName -Raw -ErrorAction SilentlyContinue
-            if ($conteudo) {
-                # Limpa espaços excessivos para reduzir o tamanho do JSON
-                $conteudoLimpo = $conteudo -replace '\s+', ' '
-                $contexto += "`n-- ARQUIVO: $($arq.Name) --`n$conteudoLimpo`n"
-            }
-        } catch {}
-    }
+Manipulação de Imagens & Canvas: Expert em processamento de pixels via Canvas API. Capaz de criar filtros, sobreposições de danos em veículos e manipulação de metadados de imagem (Exif).
 
-    $perguntaFinal = "$Instrucao`n$contexto"
-    Gemini -Pergunta $perguntaFinal
-}
+Design Digital: Conhecimento avançado em fluxos de trabalho estilo Photoshop para otimização de assets e criação de interfaces intuitivas para uso em campo.
+
+2. Especialidade Geoespacial
+Geolocalização: Conversão de coordenadas (Graus Decimais para GMS), cálculo de distância entre pontos e integração com APIs de mapas (Leaflet, Google Maps, Mapbox).
+
+Precisão de Dados: Perito em identificar locais exatos de sinistros através de latitude e longitude, cruzando dados com o marco quilométrico das rodovias.
+
+3. Domínio de Nicho: Santa Catarina & CTB
+Rodovias Catarinenses: Conhecimento profundo da malha viária de SC (BRs e SCs), incluindo trechos críticos, postos da PMRv e características geográficas do estado.
+
+Legislação: Consultor jurídico do Código de Trânsito Brasileiro (CTB), resoluções do CONTRAN e procedimentos operacionais de fiscalização e perícia.

@@ -5,9 +5,15 @@
 
 let CROQUI_SELECTED = null;
 let CROQUI_SVG = null;
+let CROQUI_CANVAS = null;
+let CROQUI_CTX = null;
 let CROQUI_DRAGGING = false;
+let CROQUI_DRAWING = false;
 let CROQUI_DRAG_OFFSET_X = 0;
 let CROQUI_DRAG_OFFSET_Y = 0;
+let CROQUI_MODO = 'objeto'; // 'objeto', 'pincel', 'borracha'
+let CROQUI_LAST_X = 0;
+let CROQUI_LAST_Y = 0;
 
 const CROQUI_DEFAULT_TRANSFORM = {
   x: 150,
@@ -91,324 +97,173 @@ function croqui_createGroup(idPrefix, type, transform) {
 
 function croqui_init() {
   CROQUI_SVG = document.getElementById('croqui-svg');
-  if (!CROQUI_SVG || CROQUI_SVG.dataset.bound === 'true') return;
+  CROQUI_CANVAS = document.getElementById('croqui-canvas');
+  if (!CROQUI_SVG || !CROQUI_CANVAS) return;
 
-  CROQUI_SVG.dataset.bound = 'true';
-  CROQUI_SVG.addEventListener('mousedown', croqui_onStart);
-  CROQUI_SVG.addEventListener('mousemove', croqui_onMove);
-  CROQUI_SVG.addEventListener('mouseup', croqui_onEnd);
-  CROQUI_SVG.addEventListener('mouseleave', croqui_onEnd);
+  CROQUI_CTX = CROQUI_CANVAS.getContext('2d');
+  
+  const container = document.getElementById('croqui-container');
+  if (!container) return;
 
-  CROQUI_SVG.addEventListener('touchstart', croqui_onStart, { passive: false });
-  CROQUI_SVG.addEventListener('touchmove', croqui_onMove, { passive: false });
-  CROQUI_SVG.addEventListener('touchend', croqui_onEnd, { passive: false });
-  CROQUI_SVG.addEventListener('touchcancel', croqui_onEnd, { passive: false });
+  // Eventos no container para capturar ambos (SVG e Canvas)
+  container.addEventListener('mousedown', croqui_onStart);
+  container.addEventListener('mousemove', croqui_onMove);
+  container.addEventListener('mouseup', croqui_onEnd);
+  container.addEventListener('mouseleave', croqui_onEnd);
+
+  container.addEventListener('touchstart', croqui_onStart, { passive: false });
+  container.addEventListener('touchmove', croqui_onMove, { passive: false });
+  container.addEventListener('touchend', croqui_onEnd, { passive: false });
+  container.addEventListener('touchcancel', croqui_onEnd, { passive: false });
 }
 
-function croqui_adicionarVia(tipo) {
-  const layer = croqui_getLayer('croqui-vias');
-  if (!layer) return null;
+function croqui_setModo(modo) {
+  CROQUI_MODO = modo;
+  const btnObj = document.getElementById('croqui-btn-objeto');
+  const btnPin = document.getElementById('croqui-btn-pincel');
+  const btnBor = document.getElementById('croqui-btn-borracha');
 
-  let element = null;
+  [btnObj, btnPin, btnBor].forEach(b => b?.classList.remove('btn-primary'));
 
-  if (tipo === 'reta') {
-    element = croqui_createGroup('via', 'via', { x: 50, y: 150, rotate: 0, scaleX: 1, scaleY: 1 });
-    element.innerHTML = `
-      <rect width="300" height="100" fill="#333" />
-      <line x1="0" y1="50" x2="300" y2="50" stroke="yellow" stroke-width="2" stroke-dasharray="10,10" />
-      <line x1="0" y1="5" x2="300" y2="5" stroke="white" stroke-width="2" />
-      <line x1="0" y1="95" x2="300" y2="95" stroke="white" stroke-width="2" />
-    `;
-  } else if (tipo === 'curva') {
-    element = croqui_createGroup('via', 'via', { x: 100, y: 100, rotate: 0, scaleX: 1, scaleY: 1 });
-    element.innerHTML = `
-      <path d="M 0 200 Q 0 0 200 0" fill="none" stroke="#333" stroke-width="100" />
-      <path d="M 0 200 Q 0 0 200 0" fill="none" stroke="yellow" stroke-width="2" stroke-dasharray="10,10" />
-    `;
-  } else if (tipo === 'cruzamento') {
-    element = croqui_createGroup('via', 'via', { x: 100, y: 100, rotate: 0, scaleX: 1, scaleY: 1 });
-    element.innerHTML = `
-      <rect x="80" y="0" width="100" height="260" fill="#333" />
-      <rect x="0" y="80" width="260" height="100" fill="#333" />
-      <line x1="130" y1="0" x2="130" y2="260" stroke="yellow" stroke-width="2" stroke-dasharray="10,10" />
-      <line x1="0" y1="130" x2="260" y2="130" stroke="yellow" stroke-width="2" stroke-dasharray="10,10" />
-    `;
+  if (modo === 'objeto') {
+    btnObj?.classList.add('btn-primary');
+    CROQUI_CANVAS.style.pointerEvents = 'none';
+  } else {
+    if (modo === 'pincel') btnPin?.classList.add('btn-primary');
+    if (modo === 'borracha') btnBor?.classList.add('btn-primary');
+    CROQUI_CANVAS.style.pointerEvents = 'auto';
   }
-
-  if (!element) return null;
-  layer.appendChild(element);
-  croqui_selecionar(element);
-  return element;
-}
-
-function croqui_abrirModalIcones() {
-  const modal = document.getElementById('croqui-modal-icones');
-  if (!modal) return;
-  modal.classList.remove('hidden');
-  croqui_filtrarIcones('veiculo');
-}
-
-function croqui_fecharModal() {
-  document.getElementById('croqui-modal-icones')?.classList.add('hidden');
-}
-
-function croqui_fecharModalOnBackdrop(event) {
-  if (event.target.id === 'croqui-modal-icones') croqui_fecharModal();
-}
-
-function croqui_filtrarIcones(category) {
-  document.querySelectorAll('.croqui-icon-item').forEach(item => {
-    item.classList.toggle('hidden', !item.classList.contains(category));
-  });
-
-  document.querySelectorAll('.croqui-icon-tabs .btn').forEach(btn => {
-    const isActive = btn.getAttribute('data-click') === `croqui_filtrarIcones('${category}')`;
-    btn.classList.toggle('btn-primary', isActive);
-  });
-}
-
-function croqui_buildIconContent(config) {
-  if (config.asRect) {
-    return '<rect x="-18" y="0" width="36" height="6" fill="#555" rx="2" />';
-  }
-
-  return `<text y="10" font-size="${config.fontSize}" text-anchor="middle">${config.emoji}</text>`;
-}
-
-function croqui_inserirIcone(tipo) {
-  const layer = croqui_getLayer('croqui-objetos');
-  if (!layer) return null;
-
-  const config = CROQUI_ICON_MAP[tipo];
-  if (!config) {
-    console.warn(`[Croqui] Icone nao mapeado: ${tipo}`);
-    alert(`Icone indisponivel: ${tipo}`);
-    return null;
-  }
-
-  const element = croqui_createGroup('obj', 'objeto', { ...CROQUI_DEFAULT_TRANSFORM });
-  element.innerHTML = `
-    <g class="icon-body">
-      ${croqui_buildIconContent(config)}
-    </g>
-    <text y="-25" font-size="10" font-weight="bold" fill="rgba(255,255,255,0.8)" text-anchor="middle" class="icon-label">${config.label}</text>
-  `;
-
-  layer.appendChild(element);
-  croqui_fecharModal();
-  croqui_selecionar(element);
-  return element;
-}
-
-async function croqui_loadSvgMarkup(path) {
-  const response = await fetch(path);
-  if (!response.ok) {
-    throw new Error(`Falha ao carregar ${path}: HTTP ${response.status}`);
-  }
-
-  const svgText = await response.text();
-  if (!svgText.includes('<svg')) {
-    throw new Error(`Arquivo SVG invalido: ${path}`);
-  }
-
-  return svgText.replace(/<svg[^>]*>/i, '').replace(/<\/svg>/i, '').trim();
-}
-
-async function croqui_inserirSvg(filename, fromRoot = false) {
-  const layer = croqui_getLayer('croqui-objetos');
-  if (!layer) return null;
-
-  const element = croqui_createGroup('svg', 'objeto', { ...CROQUI_DEFAULT_TRANSFORM });
-  const path = fromRoot ? filename : `img/sinistros/${filename}`;
-
-  try {
-    const markup = await croqui_loadSvgMarkup(path);
-    element.innerHTML = `
-      <g class="icon-body" transform="translate(-18, -18) scale(1.6, 1.6)" style="filter: invert(1); transform-origin: center;">
-        ${markup}
-      </g>
-    `;
-    layer.appendChild(element);
-    croqui_fecharModal();
-    croqui_selecionar(element);
-    return element;
-  } catch (err) {
-    console.error('[Croqui] Erro ao inserir SVG.', err);
-    alert(`Nao foi possivel carregar o SVG: ${filename}`);
-    return null;
-  }
-}
-
-async function croqui_inserirPistaSvg(filename) {
-  const layer = croqui_getLayer('croqui-vias');
-  if (!layer) return null;
-
-  const element = croqui_createGroup('pista', 'via', { x: 210, y: 160, rotate: 0, scaleX: 0.5, scaleY: 0.5 });
-
-  try {
-    const markup = await croqui_loadSvgMarkup(filename);
-    element.innerHTML = `
-      <g class="pista-body" style="filter: brightness(0.8); transform-origin: center;">
-        ${markup}
-      </g>
-    `;
-    layer.appendChild(element);
-    croqui_fecharModal();
-    croqui_selecionar(element);
-    return element;
-  } catch (err) {
-    console.error('[Croqui] Erro ao inserir pista SVG.', err);
-    alert(`Nao foi possivel carregar a pista: ${filename}`);
-    return null;
-  }
-}
-
-function croqui_selecionar(element) {
-  if (CROQUI_SELECTED) {
-    CROQUI_SELECTED.classList.remove('selected');
-  }
-
-  CROQUI_SELECTED = element;
-  if (CROQUI_SELECTED) {
-    CROQUI_SELECTED.classList.add('selected');
-  }
-}
-
-function croqui_clearSelection() {
-  if (CROQUI_SELECTED) {
-    CROQUI_SELECTED.classList.remove('selected');
-  }
-  CROQUI_SELECTED = null;
-}
-
-function croqui_getCoords(event) {
-  if (!CROQUI_SVG) return { x: 0, y: 0 };
-
-  const ctm = CROQUI_SVG.getScreenCTM();
-  if (!ctm) return { x: 0, y: 0 };
-
-  const point = event.touches ? event.touches[0] : event;
-  return {
-    x: (point.clientX - ctm.e) / ctm.a,
-    y: (point.clientY - ctm.f) / ctm.d
-  };
+  
+  croqui_clearSelection();
 }
 
 function croqui_onStart(event) {
-  if (event.cancelable) {
-    event.preventDefault();
-  }
-
-  const target = event.target.closest('g[id]');
-  if (!target) {
-    croqui_clearSelection();
-    return;
-  }
-
-  croqui_selecionar(target);
-  CROQUI_DRAGGING = true;
+  if (event.cancelable) event.preventDefault();
 
   const coords = croqui_getCoords(event);
-  const transform = croqui_parseTransform(target);
-  CROQUI_DRAG_OFFSET_X = coords.x - transform.x;
-  CROQUI_DRAG_OFFSET_Y = coords.y - transform.y;
+
+  if (CROQUI_MODO === 'objeto') {
+    const target = event.target.closest('g[id]');
+    if (!target) {
+      croqui_clearSelection();
+      return;
+    }
+    croqui_selecionar(target);
+    CROQUI_DRAGGING = true;
+    const transform = croqui_parseTransform(target);
+    CROQUI_DRAG_OFFSET_X = coords.x - transform.x;
+    CROQUI_DRAG_OFFSET_Y = coords.y - transform.y;
+  } else {
+    CROQUI_DRAWING = true;
+    CROQUI_LAST_X = coords.x * 2; // Canvas é 2x o SVG (840x640)
+    CROQUI_LAST_Y = coords.y * 2;
+    
+    CROQUI_CTX.beginPath();
+    CROQUI_CTX.moveTo(CROQUI_LAST_X, CROQUI_LAST_Y);
+    
+    if (CROQUI_MODO === 'pincel') {
+      CROQUI_CTX.strokeStyle = '#555';
+      CROQUI_CTX.lineWidth = 12;
+      CROQUI_CTX.lineCap = 'round';
+      CROQUI_CTX.lineJoin = 'round';
+      CROQUI_CTX.globalCompositeOperation = 'source-over';
+    } else {
+      CROQUI_CTX.lineWidth = 40;
+      CROQUI_CTX.globalCompositeOperation = 'destination-out';
+    }
+  }
 }
 
 function croqui_onMove(event) {
-  if (!CROQUI_DRAGGING || !CROQUI_SELECTED) return;
   event.preventDefault();
-
   const coords = croqui_getCoords(event);
-  croqui_applyTransform(CROQUI_SELECTED, {
-    x: coords.x - CROQUI_DRAG_OFFSET_X,
-    y: coords.y - CROQUI_DRAG_OFFSET_Y
-  });
+
+  if (CROQUI_DRAGGING && CROQUI_SELECTED) {
+    croqui_applyTransform(CROQUI_SELECTED, {
+      x: coords.x - CROQUI_DRAG_OFFSET_X,
+      y: coords.y - CROQUI_DRAG_OFFSET_Y
+    });
+  } else if (CROQUI_DRAWING) {
+    const currX = coords.x * 2;
+    const currY = coords.y * 2;
+    
+    // Suavização simples
+    CROQUI_CTX.lineTo(currX, currY);
+    CROQUI_CTX.stroke();
+    
+    CROQUI_LAST_X = currX;
+    CROQUI_LAST_Y = currY;
+  }
 }
 
 function croqui_onEnd() {
   CROQUI_DRAGGING = false;
+  CROQUI_DRAWING = false;
+  if (CROQUI_CTX) CROQUI_CTX.closePath();
 }
 
-function croqui_girar() {
-  if (!CROQUI_SELECTED) return;
-  const transform = croqui_parseTransform(CROQUI_SELECTED);
-  croqui_applyTransform(CROQUI_SELECTED, { rotate: (transform.rotate + 15) % 360 });
-}
-
-function croqui_escala(delta) {
-  if (!CROQUI_SELECTED) return;
-  const transform = croqui_parseTransform(CROQUI_SELECTED);
-  croqui_applyTransform(CROQUI_SELECTED, {
-    scaleX: Math.max(0.2, transform.scaleX + delta),
-    scaleY: Math.max(0.2, transform.scaleY + delta)
-  });
-}
-
-function croqui_espelhar() {
-  if (!CROQUI_SELECTED) return;
-  const transform = croqui_parseTransform(CROQUI_SELECTED);
-  croqui_applyTransform(CROQUI_SELECTED, { scaleX: transform.scaleX * -1 });
-}
-
-function croqui_camada(dir) {
-  if (!CROQUI_SELECTED || !CROQUI_SELECTED.parentNode) return;
-
-  const parent = CROQUI_SELECTED.parentNode;
-  if (dir === 'frente') {
-    const next = CROQUI_SELECTED.nextElementSibling;
-    if (next) {
-      parent.insertBefore(next, CROQUI_SELECTED);
-    }
-  } else if (dir === 'tras') {
-    const previous = CROQUI_SELECTED.previousElementSibling;
-    if (previous) {
-      parent.insertBefore(CROQUI_SELECTED, previous);
-    }
-  }
+function croqui_getCoords(event) {
+  const rect = CROQUI_SVG.getBoundingClientRect();
+  const point = event.touches ? event.touches[0] : event;
+  
+  return {
+    x: (point.clientX - rect.left) * (420 / rect.width),
+    y: (point.clientY - rect.top) * (320 / rect.height)
+  };
 }
 
 function croqui_limpar() {
   if (!confirm('Deseja limpar todo o croqui?')) return;
   croqui_getLayer('croqui-vias').innerHTML = '';
   croqui_getLayer('croqui-objetos').innerHTML = '';
+  if (CROQUI_CTX) {
+    CROQUI_CTX.clearRect(0, 0, CROQUI_CANVAS.width, CROQUI_CANVAS.height);
+  }
   croqui_clearSelection();
 }
 
 async function croqui_exportar() {
-  if (!CROQUI_SVG) return;
+  if (!CROQUI_SVG || !CROQUI_CANVAS) return;
 
-  const svgData = new XMLSerializer().serializeToString(CROQUI_SVG);
   const canvas = document.createElement('canvas');
+  canvas.width = 1680; // Alta resolução (4K-ish)
+  canvas.height = 1280;
   const ctx = canvas.getContext('2d');
-  const image = new Image();
 
-  canvas.width = CROQUI_SVG.clientWidth * 2;
-  canvas.height = CROQUI_SVG.clientHeight * 2;
+  // 1. Fundo
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // 2. Renderizar SVG (Vias e Objetos)
+  const svgData = new XMLSerializer().serializeToString(CROQUI_SVG);
   const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
+  const imgSvg = new Image();
 
-  image.onload = () => {
-    ctx.fillStyle = '#222';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  imgSvg.onload = () => {
+    ctx.drawImage(imgSvg, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
 
+    // 3. Renderizar Canvas de Desenho
+    ctx.drawImage(CROQUI_CANVAS, 0, 0, canvas.width, canvas.height);
+
+    // 4. Marca d'água PMRv (Opcional, mas profissional)
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText('PMRv-SC | Croqui Digital Pericial', 40, canvas.height - 40);
+    ctx.fillText(new Date().toLocaleString('pt-BR'), canvas.width - 300, canvas.height - 40);
+
+    // Download
     const pngUrl = canvas.toDataURL('image/png');
     const downloadLink = document.createElement('a');
     downloadLink.href = pngUrl;
-    downloadLink.download = `Croqui_PMRv_${Date.now()}.png`;
+    downloadLink.download = `Croqui_Pericial_PMRv_${Date.now()}.png`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
   };
 
-  image.onerror = () => {
-    URL.revokeObjectURL(url);
-    alert('Nao foi possivel exportar o croqui.');
-  };
-
-  image.src = url;
+  imgSvg.src = url;
 }
 
 function croqui_whatsapp() {
@@ -473,6 +328,7 @@ async function croqui_aplicarModelo(tipo) {
 }
 
 window.croqui_init = croqui_init;
+window.croqui_setModo = croqui_setModo;
 window.croqui_adicionarVia = croqui_adicionarVia;
 window.croqui_abrirModalIcones = croqui_abrirModalIcones;
 window.croqui_fecharModal = croqui_fecharModal;

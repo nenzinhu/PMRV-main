@@ -26,6 +26,95 @@ function tac_switchTab(tab) {
 /**
  * Calcula tempo de descanso.
  */
+/**
+ * Modulo: Tacografo e Jornada (Lei 13.103/15)
+ * Motor de análise pericial de cronotacógrafo.
+ */
+
+const TAC_STATE = {
+    descansoIrregular: false,
+    conducaoIrregular: false,
+    velocidadeExcedente: false,
+    equipamentoIrregular: false
+};
+
+const TAC_LIMITES_VELOCIDADE = {
+    "caminhao": 80,
+    "onibus": 80,
+    "veiculo_leve": 110,
+    "sc_urban": 60
+};
+
+/**
+ * Validação de Velocidade Máxima no Disco/Fita
+ */
+function tac_validarVelocidade() {
+    const medido = parseFloat(document.getElementById('tac_vel_medida').value || 0);
+    const limiteVia = parseFloat(document.getElementById('tac_vel_via').value || 80);
+    const res = document.getElementById('tac_vel_res');
+
+    if (medido <= 0) {
+        TAC_STATE.velocidadeExcedente = false;
+        tac_limparInfracao();
+        return;
+    }
+
+    // Considera tolerância de radar (embora no tacógrafo o valor seja absoluto para excesso, 
+    // para fins de Art. 218 usamos a lógica de velocidade considerada)
+    const considerada = medido > 100 ? Math.round(medido * 0.93) : medido - 7;
+    const excedeu = considerada > limiteVia;
+
+    if (excedeu) {
+        res.innerHTML = `<span style="color:#ef4444">⚠️ EXCESSO: Considerada ${considerada}km/h</span>`;
+        TAC_STATE.velocidadeExcedente = true;
+        
+        let resumo = `*INFRAÇÃO: EXCESSO DE VELOCIDADE (TACÓGRAFO)*\n`;
+        resumo += `Enquadramento: Art. 218 do CTB\n`;
+        resumo += `Velocidade Registrada: ${medido} km/h\n`;
+        resumo += `Velocidade Considerada: ${considerada} km/h\n`;
+        resumo += `Limite da Via: ${limiteVia} km/h\n`;
+        resumo += `----------------------------\n`;
+        resumo += `Nota: O cronotacógrafo é meio de prova legítimo conforme Res. 92/99 e 938/22.`;
+        
+        tac_montarInfracao(resumo);
+    } else {
+        res.innerHTML = `<span style="color:#10b981">✅ VELOCIDADE OK (${considerada}km/h considerada)</span>`;
+        TAC_STATE.velocidadeExcedente = false;
+        tac_limparInfracao();
+    }
+}
+
+/**
+ * Checklist de Integridade do Equipamento (Art. 230 X e XIV)
+ */
+function tac_verificarEquipamento(tipo) {
+    const isChecked = document.getElementById(`tac_check_${tipo}`).checked;
+    
+    if (!isChecked) {
+        let infra = "";
+        if (tipo === 'inmetro') infra = "Certificado de Verificação do INMETRO vencido ou ausente (Art. 230, XIV).";
+        if (tipo === 'lacre') infra = "Equipamento sem lacre ou com lacre rompido (Art. 230, X).";
+        if (tipo === 'disco') infra = "Ausência de dados obrigatórios no disco/fita (Art. 230, X).";
+        
+        if (infra) {
+            TAC_STATE.equipamentoIrregular = true;
+            let resumo = `*INFRAÇÃO: IRREGULARIDADE NO EQUIPAMENTO*\n`;
+            resumo += `Enquadramento: Art. 230 do CTB\n`;
+            resumo += `Motivo: ${infra}\n`;
+            resumo += `----------------------------\n`;
+            resumo += `Medida adm: Retenção para regularização.`;
+            tac_montarInfracao(resumo);
+        }
+    } else {
+        // Se todos os outros checks também estiverem marcados, limpa
+        const checks = ['inmetro', 'lacre', 'disco'].every(t => document.getElementById(`tac_check_${t}`).checked);
+        if (checks) {
+            TAC_STATE.equipamentoIrregular = false;
+            tac_limparInfracao();
+        }
+    }
+}
+
 function tac_calcDescanso() {
     const ini = document.getElementById('tac_desc_ini').value;
     const fim = document.getElementById('tac_desc_fim').value;
@@ -41,38 +130,25 @@ function tac_calcDescanso() {
     const horas = Math.floor(diff / 60);
     const mins = diff % 60;
 
-    let msg = `Duracao: ${horas}h ${mins}min`;
-
     if (diff >= 660) {
-        res.style.color = "#10b981";
-        msg += " OK";
+        res.innerHTML = `<span style="color:#10b981">✅ OK: ${horas}h ${mins}m</span>`;
         TAC_STATE.descansoIrregular = false;
         tac_limparInfracao();
     } else {
-        res.style.color = "#ef4444";
-        msg += " INSUFICIENTE (Min. 11h)";
+        res.innerHTML = `<span style="color:#ef4444">⚠️ INSUFICIENTE: ${horas}h ${mins}m</span>`;
         TAC_STATE.descansoIrregular = true;
 
-        let resumo = `*INFRACAO: DESCANSO INSUFICIENTE*\n`;
+        let resumo = `*INFRAÇÃO: DESCANSO INSUFICIENTE (LEI 13.103/15)*\n`;
         resumo += `Enquadramento: Art. 230, XXIII do CTB\n`;
-        resumo += `Codigo da Infracao: 670-00\n`;
-        resumo += `Lei Federal 13.103/15 (Lei do Motorista)\n`;
+        resumo += `Tempo apurado: ${horas}h ${mins}min\n`;
+        resumo += `Faltante: ${Math.floor((660 - diff) / 60)}h ${(660 - diff) % 60}min\n`;
         resumo += `----------------------------\n`;
-        resumo += `Duracao apurada: ${horas}h ${mins}min\n`;
-        resumo += `Minimo exigido: 11h 00min\n`;
-        resumo += `Deficit: ${Math.floor((660 - diff) / 60)}h ${(660 - diff) % 60}min\n`;
-        resumo += `----------------------------\n`;
-        resumo += `Medida adm: retencao para cumprimento do descanso.`;
+        resumo += `Nota: O condutor deve cumprir 11h de descanso a cada 24h.`;
 
         tac_montarInfracao(resumo);
     }
-
-    res.innerText = msg;
 }
 
-/**
- * Calcula tempo de conducao continua.
- */
 function tac_calcConducao() {
     const ini = document.getElementById('tac_cond_ini').value;
     const fim = document.getElementById('tac_cond_fim').value;
@@ -88,34 +164,25 @@ function tac_calcConducao() {
     const horas = Math.floor(diff / 60);
     const mins = diff % 60;
 
-    let msg = `Duracao: ${horas}h ${mins}min`;
-
     if (diff <= 330) {
-        res.style.color = "#10b981";
-        msg += " DENTRO DO LIMITE";
+        res.innerHTML = `<span style="color:#10b981">✅ OK: ${horas}h ${mins}m</span>`;
         TAC_STATE.conducaoIrregular = false;
         tac_limparInfracao();
     } else {
-        res.style.color = "#ef4444";
-        msg += " EXCEDEU 5H30 (Art. 67-C)";
+        res.innerHTML = `<span style="color:#ef4444">⚠️ EXCEDEU: ${horas}h ${mins}m</span>`;
         TAC_STATE.conducaoIrregular = true;
 
-        let resumo = `*INFRACAO: EXCESSO DE DIRECAO CONTINUA*\n`;
-        resumo += `Enquadramento: Art. 230, XXIII do CTB\n`;
-        resumo += `Codigo da Infracao: 670-00\n`;
-        resumo += `Norma: Art. 67-C do CTB (Lei 13.103/15)\n`;
+        let resumo = `*INFRAÇÃO: EXCESSO DE CONDUÇÃO CONTÍNUA*\n`;
+        resumo += `Enquadramento: Art. 67-C do CTB\n`;
+        resumo += `Tempo em direção: ${horas}h ${mins}min\n`;
+        resumo += `Limite: 5h 30min\n`;
         resumo += `----------------------------\n`;
-        resumo += `Tempo em direcao: ${horas}h ${mins}min\n`;
-        resumo += `Limite continuo: 5h 30min\n`;
-        resumo += `Excesso: ${Math.floor((diff - 330) / 60)}h ${(diff - 330) % 60}min\n`;
-        resumo += `----------------------------\n`;
-        resumo += `Medida adm: retencao para descanso obrigatorio de 30min.`;
+        resumo += `Medida adm: Retenção para descanso de 30 minutos.`;
 
         tac_montarInfracao(resumo);
     }
-
-    res.innerText = msg;
 }
+
 
 /**
  * Exibicao de infracao.

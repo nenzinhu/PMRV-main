@@ -31,7 +31,7 @@ PMRV.danosReport = (function() {
     return JSON.parse(JSON.stringify(v360db));
   }
 
-  function buildMotoReport(v360db, tabNames, date) {
+  function buildMotoReport(v360db, tabNames, date, fotosIA, iaLaudoGlobal) {
     if (!hasMotoAvaria(v360db)) return '';
 
     const names = tabNames || DEFAULT_MOTO_TAB_NAMES;
@@ -50,6 +50,17 @@ PMRV.danosReport = (function() {
       });
     });
 
+    if (fotosIA && fotosIA.length) {
+      txt += '\n\n*ANÁLISE VISUAL POR IA:*';
+      fotosIA.forEach((desc, i) => {
+        txt += `\n${i + 1}. ${desc}`;
+      });
+    }
+
+    if (iaLaudoGlobal) {
+      txt += '\n\n' + iaLaudoGlobal;
+    }
+
     txt += '\n\nObs.: relato baseado em condições visíveis no local, sem caráter pericial.';
     return txt;
   }
@@ -61,7 +72,9 @@ PMRV.danosReport = (function() {
       diagramas,
       getLabel,
       tipo,
-      vistaLabels
+      vistaLabels,
+      fotosIA,
+      iaLaudoGlobal
     } = options;
 
     const ids = Object.keys(danos || {});
@@ -86,6 +99,17 @@ PMRV.danosReport = (function() {
         txt += `\n• ${ponto.label}: ${tipoDano.charAt(0).toUpperCase() + tipoDano.slice(1)}`;
       });
     });
+
+    if (fotosIA && fotosIA.length) {
+      txt += '\n\n*ANÁLISE VISUAL POR IA:*';
+      fotosIA.forEach((desc, i) => {
+        txt += `\n${i + 1}. ${desc}`;
+      });
+    }
+
+    if (iaLaudoGlobal) {
+      txt += '\n\n' + iaLaudoGlobal;
+    }
 
     txt += '\n\nObservação: relato baseado em avarias visíveis no local, sem caráter pericial.';
     return txt;

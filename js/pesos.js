@@ -8,105 +8,19 @@ const PES_LIMITES_EIXOS = {
     "simples_4": { nome: "Eixo Simples (4 pneus)", limite: 10000 },
     "tandem_duplo": { nome: "Tandem Duplo (8 pneus)", limite: 17000 },
     "tandem_triplo": { nome: "Tandem Triplo (12 pneus)", limite: 25500 },
-    "direcional_duplo": { nome: "Direcional Duplo (4 pneus)", limite: 12000 }
+    "direcional_duplo": { nome: "Direcional Duplo (4 pneus)", limite: 12000 },
+    "vanderleia_duplo": { nome: "Vanderleia (2 eixos distanciados)", limite: 20000 },
+    "vanderleia_triplo": { nome: "Vanderleia (3 eixos distanciados)", limite: 30000 },
+    "extralarga_simples": { nome: "Eixo com Pneus Extra-Largos", limite: 9000 }
 };
 
-function pes_init() {
-    console.log("Módulo de Pesos e Dimensões inicializado.");
-}
-
 /**
- * Troca entre abas de Peso e Dimensões
+ * Arredondamento Pericial (Resolução 882/21)
+ * O valor medido na balança deve ser arredondado para a dezena mais próxima para baixo.
+ * Ex: 10.057 kg -> 10.050 kg
  */
-function pes_switchTab(tab) {
-    document.getElementById('pes-content-pbt').classList.toggle('hidden', tab !== 'pbt');
-    document.getElementById('pes-content-dim').classList.toggle('hidden', tab !== 'dim');
-    document.getElementById('pes-content-img').classList.toggle('hidden', tab !== 'img');
-    
-    document.getElementById('tab-pes-pbt').classList.toggle('btn-primary', tab === 'pbt');
-    document.getElementById('tab-pes-dim').classList.toggle('btn-primary', tab === 'dim');
-    document.getElementById('tab-pes-img').classList.toggle('btn-primary', tab === 'img');
-    
-    // Limpa infração ao trocar de contexto para evitar confusão
-    document.getElementById('pes_infracao_box').classList.add('hidden');
-}
-
-/**
- * LÓGICA DE PESO (PBT)
- */
-function pes_onMetodoChange() {
-    const metodo = document.getElementById('pes_metodo').value;
-    document.getElementById('pes_row_nf').classList.toggle('hidden', metodo !== 'nf');
-    document.getElementById('pes_row_balanca').classList.toggle('hidden', metodo !== 'balanca');
-    pes_calcular();
-}
-
-function pes_onConfigChange() {
-    const select = document.getElementById('pes_config');
-    const manualInput = document.getElementById('pes_limite_manual');
-    if (select.value === 'MANUAL') {
-        manualInput.classList.remove('hidden');
-        manualInput.focus();
-    } else {
-        manualInput.classList.add('hidden');
-    }
-    pes_calcular();
-}
-
-/**
- * GESTÃO DINÂMICA DE EIXOS
- */
-function pes_adicionarEixo() {
-    const lista = document.getElementById('pes_eixos_lista');
-    const id = "eixo_" + Date.now();
-    
-    let htmlOptions = "";
-    for (const key in PES_LIMITES_EIXOS) {
-        htmlOptions += `<option value="${key}">${PES_LIMITES_EIXOS[key].nome}</option>`;
-    }
-
-    const item = document.createElement('div');
-    item.id = id;
-    item.className = "sub-box";
-    item.style.padding = "8px";
-    item.innerHTML = `
-        <div class="flex gap-8 align-center">
-            <select class="pes-eixo-tipo" style="flex:1; font-size:12px;" onchange="pes_calcular()">
-                ${htmlOptions}
-            </select>
-            <input type="number" class="pes-eixo-peso" placeholder="Peso KG" style="flex:0 0 100px;" oninput="pes_calcular()">
-            <button type="button" class="btn btn-sm btn-danger" onclick="pes_removerEixo('${id}')">🗑</button>
-        </div>
-        <div class="pes-eixo-res mt-4" style="font-size:11px; font-weight:700;"></div>
-    `;
-    lista.appendChild(item);
-    pes_calcular();
-}
-
-function pes_removerEixo(id) {
-    document.getElementById(id)?.remove();
-    pes_calcular();
-}
-
-/**
- * CÁLCULO DE MULTA (Art. 231, V)
- * Base: Multa Média (R$ 130,16) + Adicionais a cada 200kg
- */
-function pes_getValorMulta(excessoKG) {
-    if (excessoKG <= 0) return 0;
-    
-    const baseMulta = 130.16;
-    const frações = Math.ceil(excessoKG / 200);
-    let valorAdicional = 0;
-
-    if (excessoKG <= 600) valorAdicional = frações * 5.32;
-    else if (excessoKG <= 800) valorAdicional = frações * 10.64;
-    else if (excessoKG <= 1000) valorAdicional = frações * 21.28;
-    else if (excessoKG <= 3000) valorAdicional = frações * 31.92;
-    else if (excessoKG <= 5000) valorAdicional = frações * 42.56;
-    else valorAdicional = frações * 53.20;
-
-    return baseMulta + valorAdicional;
+function pes_arredondar(valor) {
+    return Math.floor(valor / 10) * 10;
 }
 
 function pes_calcular() {
@@ -118,38 +32,42 @@ function pes_calcular() {
                          parseFloat(manualInput.value || 0) : 
                          parseFloat(configSelect.value);
 
-    let pbtApurado = 0;
+    let pbtApuradoOriginal = 0;
     if (metodo === 'nf') {
         const tara = parseFloat(document.getElementById('pes_tara').value || 0);
         const cargaNF = parseFloat(document.getElementById('pes_carga').value || 0);
-        pbtApurado = tara + cargaNF;
+        pbtApuradoOriginal = tara + cargaNF;
     } else {
-        pbtApurado = parseFloat(document.getElementById('pes_medido').value || 0);
+        pbtApuradoOriginal = parseFloat(document.getElementById('pes_medido').value || 0);
     }
 
-    // Tolerância PBT: 5%
+    // Aplica arredondamento legal se for balança
+    const pbtApurado = metodo === 'balanca' ? pes_arredondar(pbtApuradoOriginal) : pbtApuradoOriginal;
+
+    // Tolerância PBT: 5% (Res. 882/21)
     const tolPBT = Math.floor(limiteLegalPBT * 0.05);
     const limiteMaxPBT = limiteLegalPBT + tolPBT;
     const excessoPBT = pbtApurado - limiteLegalPBT;
 
-    document.getElementById('res_pbt_apurado').innerText = pbtApurado.toLocaleString('pt-BR') + " kg";
+    document.getElementById('res_pbt_apurado').innerHTML = `${pbtApurado.toLocaleString('pt-BR')} kg ${metodo === 'balanca' ? '<small style="font-size:10px; opacity:0.7;">(Arredondado)</small>' : ''}`;
     document.getElementById('res_pbt_limite').innerText = limiteLegalPBT.toLocaleString('pt-BR') + " kg";
     document.getElementById('res_pbt_tolerancia').innerText = limiteMaxPBT.toLocaleString('pt-BR') + " kg";
 
     let eixosExcedentes = [];
     let maiorExcessoEixo = 0;
 
-    // Cálculo de Eixos (apenas se houver eixos adicionados)
+    // Cálculo de Eixos
     if (metodo === 'balanca') {
         const eixosDOM = document.querySelectorAll('#pes_eixos_lista .sub-box');
         eixosDOM.forEach(el => {
             const tipoKey = el.querySelector('.pes-eixo-tipo').value;
-            const pesoInp = parseFloat(el.querySelector('.pes-eixo-peso').value || 0);
+            const pesoOriginal = parseFloat(el.querySelector('.pes-eixo-peso').value || 0);
             const resEl = el.querySelector('.pes-eixo-res');
             
-            if (pesoInp > 0) {
+            if (pesoOriginal > 0) {
+                const pesoInp = pes_arredondar(pesoOriginal);
                 const limitLegalEixo = PES_LIMITES_EIXOS[tipoKey].limite;
-                const tolEixo = Math.floor(limitLegalEixo * 0.125); // Tolerância 12,5%
+                const tolEixo = Math.floor(limitLegalEixo * 0.125); // Tolerância 12,5% (Lei 14.229/21)
                 const maxEixo = limitLegalEixo + tolEixo;
                 
                 if (pesoInp > maxEixo) {
@@ -179,64 +97,60 @@ function pes_calcular() {
     const excessoEixoOcorre = eixosExcedentes.length > 0;
 
     if (!excessoPBTOcorre && !excessoEixoOcorre) {
-        pes_setAlerta(alerta, 'legal', "DENTRO DO LIMITE", "Pesagem em conformidade (considerando tolerâncias da Res. 882/21).");
+        pes_setAlerta(alerta, 'legal', "DENTRO DO LIMITE", `Pesagem em conformidade.<br><small>Arredondamento e tolerâncias aplicadas (Res. 882/21).</small>`);
         document.getElementById('pes_infracao_box').classList.add('hidden');
     } else {
         let tit = "IRREGULARIDADE DETECTADA!";
         let desc = "";
         let detalhesInfra = "";
         let transbordo = 0;
-        let remanejamento = 0;
 
-        // Cálculo da Multa: Baseia-se no maior excesso (PBT ou Eixo)
+        // Multa baseada no maior excesso
         const excessoParaMulta = Math.max(excessoPBT, maiorExcessoEixo);
         const valorMulta = pes_getValorMulta(excessoParaMulta);
 
-        // Inteligência Pericial: Art. 10 da Res. 882/21
-        // Se PBT está ok mas Eixo excedeu, não se aplica multa se for possível remanejar.
+        // Art. 10 da Res. 882/21 (Remanejamento)
         const somenteEixo = !excessoPBTOcorre && excessoEixoOcorre;
 
         if (excessoPBTOcorre) {
             transbordo = pbtApurado - limiteLegalPBT;
             desc += `<strong>PBT:</strong> +${excessoPBT.toLocaleString('pt-BR')} kg (Acima da tolerância)<br>`;
-            desc += `🚚 <strong>TRANSBORDO OBRIGATÓRIO:</strong> Retirar ${transbordo.toLocaleString('pt-BR')} kg<br>`;
+            desc += `<div style="color:#e74c3c; font-weight:bold; margin:5px 0;">🚚 TRANSBORDO: Retirar ${transbordo.toLocaleString('pt-BR')} kg</div>`;
             detalhesInfra += `EXCESSO PBT (Art. 231, V)\nLimite: ${limiteLegalPBT.toLocaleString('pt-BR')}kg | Apurado: ${pbtApurado.toLocaleString('pt-BR')}kg\nExcesso: ${excessoPBT.toLocaleString('pt-BR')}kg\nTransbordo: ${transbordo.toLocaleString('pt-BR')}kg\n`;
         }
         
         if (excessoEixoOcorre) {
-            remanejamento = eixosExcedentes.reduce((acc, curr) => {
+            const remanejamentoTotal = eixosExcedentes.reduce((acc, curr) => {
                 const match = curr.match(/Exc: (\d+)kg/);
                 return acc + (match ? parseInt(match[1]) : 0);
             }, 0);
 
             if (somenteEixo) {
                 tit = "REMANEJAMENTO OBRIGATÓRIO (Art. 10)";
-                desc += `<div style="background:rgba(245,158,11,0.1);padding:8px;border-radius:8px;margin-bottom:8px;">⚖️ <strong>PBT REGULAR:</strong> Conforme Art. 10 da Res. 882/21, proceda ao remanejamento da carga. Só haverá multa se o remanejamento for impossível.</div>`;
+                desc += `<div style="background:rgba(245,158,11,0.1);padding:8px;border-radius:8px;margin-bottom:8px; border:1px solid #f59e0b;">⚖️ <strong>PBT REGULAR:</strong> Conforme Art. 10 da Res. 882/21, proceda ao remanejamento. Se impossível, aplique a multa.</div>`;
             }
-            desc += `<strong>EIXOS:</strong> ${eixosExcedentes.length} irregularidades (+${remanejamento.toLocaleString('pt-BR')} kg totais)<br>`;
+            desc += `<strong>EIXOS:</strong> ${eixosExcedentes.length} conjuntos excedentes.<br>`;
             detalhesInfra += `\nEXCESSO NOS EIXOS (Art. 231, V):\n${eixosExcedentes.join('\n')}`;
         }
 
-        if (excessoPBTOcorre || (somenteEixo && valorMulta > 0)) {
-            desc += `<br>💰 <strong>MULTA ESTIMADA: R$ ${valorMulta.toFixed(2).replace('.', ',')}</strong>`;
-        }
+        desc += `<div style="margin-top:10px; border-top:1px solid rgba(0,0,0,0.1); padding-top:10px;">💰 <strong>MULTA ESTIMADA: R$ ${valorMulta.toFixed(2).replace('.', ',')}</strong></div>`;
 
         pes_setAlerta(alerta, 'excesso', tit, desc);
         const metodoTxt = metodo === 'balanca' ? 'BALANÇA' : 'NOTA FISCAL';
         
-        let resumoInfra = `*INFRAÇÃO: EXCESSO DE PESO*\n`;
+        let resumoInfra = `*LAUDO TÉCNICO DE PESAGEM (RES. 882/21)*\n`;
         resumoInfra += `Enquadramento: Art. 231, V do CTB\n`;
-        resumoInfra += `Código da Infração: 682-31\n`;
         resumoInfra += `Método: ${metodoTxt}\n`;
         resumoInfra += `----------------------------\n`;
         resumoInfra += `${detalhesInfra}\n`;
         resumoInfra += `----------------------------\n`;
-        resumoInfra += `Medida Adm: Retenção para transbordo ou remanejamento.\n`;
-        resumoInfra += `Valor Est.: R$ ${valorMulta.toFixed(2).replace('.', ',')}`;
+        resumoInfra += `Medida Adm: Retenção para transbordo/remanejamento.\n`;
+        resumoInfra += `Valor Estimado: R$ ${valorMulta.toFixed(2).replace('.', ',')}`;
 
         pes_montarInfracao('PESO (RES. 882/21)', resumoInfra);
     }
 }
+
 
 /**
  * LÓGICA DE DIMENSÕES

@@ -17,10 +17,49 @@
   
   <link rel="stylesheet" href="css/inlined.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 </head>
 
 <body>
 <div class="app" role="main">
+
+  <!-- MODAL IA VISION — ANÁLISE GLOBAL DE 4 LADOS -->
+  <div id="dan-ia-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:600px;width:95%;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">🔍 IA Vision — Análise Automática</h3>
+          <p class="modal-sub">A IA irá escanear as fotos para identificar e descrever os danos.</p>
+        </div>
+        <button class="modal-close" data-click="danIACloseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="dan-ia-preview-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px;">
+          <!-- Previsão das fotos sendo analisadas -->
+        </div>
+        
+        <div id="dan-ia-loading" class="hidden" style="text-align:center;padding:30px;background:rgba(245,130,32,0.03);border-radius:12px;border:1px dashed var(--laranja);">
+          <div class="spinner" style="margin:0 auto 15px;"></div>
+          <p id="dan-ia-loading-txt" style="font-size:14px;color:var(--text);font-weight:600;">Iniciando escaneamento 360°...</p>
+          <p style="font-size:12px;color:var(--label);margin-top:5px;">Processando imagens em modo paisagem...</p>
+        </div>
+
+        <div id="dan-ia-result-wrap" class="hidden">
+          <div style="background:var(--surface);padding:15px;border-radius:12px;border:1px solid var(--border);max-height:300px;overflow-y:auto;">
+            <div style="font-size:11px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+              <span style="display:inline-block;width:8px;height:8px;background:var(--laranja);border-radius:50%;"></span>
+              Laudo Visual Sugerido
+            </div>
+            <div id="dan-ia-result-text" style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;"></div>
+          </div>
+          <div style="margin-top:15px;display:flex;gap:10px;">
+            <button class="btn btn-full" data-click="danIACloseModal()">Descartar</button>
+            <button class="btn btn-primary btn-full" data-click="danIAAdotarTudo()">✅ Adotar no Relatório</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- TOPBAR COMPACTA -->
   <header class="topbar" role="banner">
@@ -97,9 +136,9 @@
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
-        <button class="menu-card" data-color="blue" data-click="go('referencias-proximas')" aria-label="Abrir Referências Próximas (100m)">
+        <button class="menu-card" data-color="blue" data-click="go('referencias-proximas')" aria-label="Abrir Referências Próximas (200m)">
           <div class="menu-icon">📍</div>
-          <div class="menu-title">Referências de 100m</div>
+          <div class="menu-title">Referências de 200m</div>
           <div class="menu-desc">Marcos georreferenciados na Grande Floripa</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
@@ -660,21 +699,33 @@
         <!-- Tabs de vista -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
           <button class="dan-tab active" id="dan-tab-frontal"  data-click="danMudarVista('frontal')">
-            <img class="dan-tab-thumb" src="carro_frente_nobg.png" alt="Frente" data-click-stop="core_zoomImage(this.src)">
+            <img class="dan-tab-thumb" src="carro_frente_nobg.png" alt="Frente">
             Frontal
           </button>
           <button class="dan-tab" id="dan-tab-traseira" data-click="danMudarVista('traseira')">
-            <img class="dan-tab-thumb" src="carro_tras_nobg.png" alt="Traseira" data-click-stop="core_zoomImage(this.src)">
+            <img class="dan-tab-thumb" src="carro_tras_nobg.png" alt="Traseira">
             Traseira
           </button>
           <button class="dan-tab" id="dan-tab-esquerda" data-click="danMudarVista('esquerda')">
-            <img class="dan-tab-thumb" src="carro_esquerda_nobg.png" alt="Esquerda" data-click-stop="core_zoomImage(this.src)">
-            Lateral esquerda
+            <img class="dan-tab-thumb" src="carro_esquerda_nobg.png" alt="Esquerda">
+            Esq.
           </button>
           <button class="dan-tab" id="dan-tab-direita"  data-click="danMudarVista('direita')">
-            <img class="dan-tab-thumb" src="carro_direita_nobg.png" alt="Direita" data-click-stop="core_zoomImage(this.src)">
-            Lateral direita
+            <img class="dan-tab-thumb" src="carro_direita_nobg.png" alt="Direita">
+            Dir.
           </button>
+        </div>
+
+        <!-- Vistoria por Foto Real (EITTR) -->
+        <div style="margin-bottom:12px; padding:10px; background:rgba(245,130,32,0.1); border:1px solid var(--primary); border-radius:12px;">
+          <div style="font-size:11px; font-weight:bold; color:var(--primary); margin-bottom:8px; text-transform:uppercase;">📸 Vistoria por Foto Real (Assistida)</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <label class="btn btn-sm" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
+              📷 Tirar Foto desta Vista
+              <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="danCarregarFotoReal(this)">
+            </label>
+            <button class="btn btn-sm" data-click="danResetarFotoReal()" id="dan-btn-reset-foto" style="display:none;">🖼️ Voltar p/ Diagrama</button>
+          </div>
         </div>
 
         <div id="dan-part-list-area" class="dan-part-list-card" style="display:none;">
@@ -1635,13 +1686,15 @@
         <button class="btn btn-sm btn-primary" data-click="croqui_abrirModalIcones()">+ Ícones</button>
       </div>
 
-      <div class="flex gap-8 flex-wrap" style="margin-bottom:12px;">
+      <div class="flex gap-8 flex-wrap" style="margin-bottom:12px; align-items: center;">
+        <button class="btn btn-sm btn-primary" data-click="croqui_setModo('objeto')" id="croqui-btn-objeto">🖐 Mover Objetos</button>
+        <button class="btn btn-sm" data-click="croqui_setModo('pincel')" id="croqui-btn-pincel">🖌 Pincel Frenagem</button>
+        <button class="btn btn-sm" data-click="croqui_setModo('borracha')" id="croqui-btn-borracha">🧹 Borracha</button>
+        <div style="width:1px; height:20px; background:var(--border); margin:0 4px;"></div>
         <button class="btn btn-sm" data-click="croqui_girar()">↻ Girar</button>
         <button class="btn btn-sm" data-click="croqui_escala(0.1)">＋ Escala</button>
         <button class="btn btn-sm" data-click="croqui_escala(-0.1)">－ Escala</button>
         <button class="btn btn-sm" data-click="croqui_espelhar()">⇋ Espelhar</button>
-        <button class="btn btn-sm" data-click="croqui_camada('frente')">⬆ Frente</button>
-        <button class="btn btn-sm" data-click="croqui_camada('tras')">⬇ Fundo</button>
       </div>
 
       <div class="flex gap-8 flex-wrap" style="margin-bottom:12px;">
@@ -1651,12 +1704,13 @@
         <button class="btn btn-sm" data-click="croqui_aplicarModelo('saida')">Modelo saída</button>
       </div>
 
-      <div style="background:#1a1f2d;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
-        <svg id="croqui-svg" viewBox="0 0 420 320" style="width:100%;height:auto;display:block;background:#222;">
+      <div style="background:#1a1f2d;border:1px solid var(--border);border-radius:14px;overflow:hidden; position:relative; width:100%; max-width:560px; margin:0 auto;" id="croqui-container">
+        <svg id="croqui-svg" viewBox="0 0 420 320" style="width:100%;height:auto;display:block;background:#222; position:relative; z-index:1;">
           <rect x="0" y="0" width="420" height="320" fill="#222"></rect>
           <g id="croqui-vias"></g>
           <g id="croqui-objetos"></g>
         </svg>
+        <canvas id="croqui-canvas" width="840" height="640" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none;"></canvas>
       </div>
 
       <div class="result-actions" style="margin-top:16px;">
@@ -1703,16 +1757,19 @@
         <div class="form-field">
           <label class="field-label">Categorias</label>
           <div class="flex gap-8 flex-wrap" id="ref_prox_categorias">
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7311')">⛽ Posto</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7322')">🚑 SAMU</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7324')">🚒 Bombeiro</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7323')">👮 Policia</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '9113')">🛠️ Borracharia</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '9361009')">🛒 Conveniência</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7321')">🏥 Saúde</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7326')">💊 Farmácia</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '7315')">🍽️ Restaurante</button>
-            <button class="btn btn-sm btn-primary" data-click="ref_prox_toggleCat(this, '9361')">🛍️ Loja</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7311" data-click="ref_prox_toggleCat(this, '7311')">⛽ Posto</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7322" data-click="ref_prox_toggleCat(this, '7322')">🚑 SAMU</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7324" data-click="ref_prox_toggleCat(this, '7324')">🚒 Bombeiro</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7323" data-click="ref_prox_toggleCat(this, '7323')">👮 Policia</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="9113" data-click="ref_prox_toggleCat(this, '9113')">🛠️ Borracharia</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="9361009" data-click="ref_prox_toggleCat(this, '9361009')">🛒 Conveniência</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7321" data-click="ref_prox_toggleCat(this, '7321')">🏥 Saúde</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7326" data-click="ref_prox_toggleCat(this, '7326')">💊 Farmácia</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="7315" data-click="ref_prox_toggleCat(this, '7315')">🍽️ Restaurante</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="9361" data-click="ref_prox_toggleCat(this, '9361')">🛍️ Loja</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="bank" data-click="ref_prox_toggleCat(this, 'bank')">🏦 Banco</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="icecream" data-click="ref_prox_toggleCat(this, 'icecream')">🍦 Sorveteria</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="restroom" data-click="ref_prox_toggleCat(this, 'restroom')">🚻 Banheiro</button>
           </div>
         </div>
 
