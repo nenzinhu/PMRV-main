@@ -54,24 +54,35 @@
     }
     ::selection { background: rgba(245,130,32,.4); color: #fff; }
 
-    body {
-      font-family: var(--font-body);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      min-height: 100dvh;
-      padding: var(--app-shell-gap);
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      font-size: 15px;
-      line-height: 1.6;
-      /* Subtle grid texture */
-      background-image:
-        linear-gradient(rgba(148,120,92,.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(148,120,92,.06) 1px, transparent 1px);
-      background-size: 32px 32px;
+    /* ============================================================
+       TACTICAL NIGHT MODE (EITTR)
+    ============================================================ */
+    body.theme-tactical {
+      --bg:        #050000;
+      --surface:   #0a0000;
+      --surface-2: #120000;
+      --surface-3: #1a0000;
+      --card:      #150000;
+      --text:      #ff4d4d; /* Vermelho puro para preservação de visão */
+      --muted:     #b30000;
+      --label:     #ff8000; /* Âmbar */
+      --primary:   #d82a2e;
+      --border:    rgba(255,0,0,.15);
+      --border-hi: rgba(255,0,0,.30);
+      filter: contrast(1.1) brightness(0.8);
     }
+    body.theme-tactical .btn-primary {
+      background: linear-gradient(135deg, #990000, #440000);
+      border-color: #ff0000;
+    }
+    body.theme-tactical img:not(.brand-logo) {
+      filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(3);
+    }
+    body.theme-tactical .topbar {
+      background: #0a0000;
+      border-color: #ff0000;
+    }
+
 
 
 

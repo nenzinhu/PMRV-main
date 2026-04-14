@@ -26,15 +26,119 @@ function core_formatarKM(input) {
   input.dispatchEvent(new Event('input'));
 }
 
-window.core_formatarKM = core_formatarKM;
+/* ---------------------------------------------------------------
+   MOTOR DE PERSISTÊNCIA PRO (IndexedDB) & TÁTICA (EITTR)
+--------------------------------------------------------------- */
+PMRV.db = (function() {
+  let db = null;
+  const DB_NAME = 'PMRV_OFFLINE_DB';
+  const STORE_NAME = 'laudos_v1';
 
+  async function init() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = (e) => {
+        db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+      request.onerror = (e) => reject(e);
+    });
+  }
+
+  async function salvarEstado(id, data) {
+    if (!db) await init();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put({ id, data, timestamp: Date.now() });
+      tx.oncomplete = () => resolve(true);
+    });
+  }
+
+  async function recuperarEstado(id) {
+    if (!db) await init();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const request = tx.objectStore(STORE_NAME).get(id);
+      request.onsuccess = () => resolve(request.result?.data || null);
+    });
+  }
+
+  return { init, salvarEstado, recuperarEstado };
+})();
+
+PMRV.tactical = (function() {
+  function toggle() {
+    const isTactical = document.body.classList.toggle('theme-tactical');
+    localStorage.setItem('pmrv_tactical_mode', isTactical ? '1' : '0');
+    if (window.navigator.vibrate) window.navigator.vibrate(20);
+  }
+
+  function init() {
+    if (localStorage.getItem('pmrv_tactical_mode') === '1') {
+      document.body.classList.add('theme-tactical');
+    }
+  }
+
+  return { toggle, init };
+})();
+
+PMRV.geofence = (function() {
+  let trechosCriticos = [];
+
+  async function init() {
+    try {
+      trechosCriticos = await PMRV.dataManager.loadResource('trechos_criticos', 'data/trechos_criticos.json');
+      console.log('[Geofence] Trechos críticos carregados:', trechosCriticos.length);
+    } catch (err) {
+      console.error('[Geofence] Erro ao carregar trechos críticos:', err);
+      // Fallback básico em caso de falha no carregamento
+      trechosCriticos = [
+        { rod: 'SC-401', kmIni: 10, kmFim: 14, desc: 'Trecho de Alto Índice de Sinistralidade (Curvas do Jardim da Paz)' }
+      ];
+    }
+  }
+
+  function verificar(rodovia, km) {
+    if (!trechosCriticos.length) return;
+    const trecho = trechosCriticos.find(t =>
+      t.rod === rodovia && km >= t.kmIni && km <= t.kmFim
+    );
+    if (trecho) {
+      core_notificarOperacional('⚠️ ALERTA DE TRECHO CRÍTICO', trecho.desc);
+    }
+  }
+
+  function obterTrecho(rodovia, km) {
+    if (!trechosCriticos.length) return null;
+    return trechosCriticos.find(t =>
+      t.rod === rodovia && km >= t.kmIni && km <= t.kmFim
+    ) || null;
+  }
+
+  return { init, verificar, obterTrecho };
+})();
+function core_notificarOperacional(titulo, msg) {
+  const toast = document.createElement('div');
+  toast.className = 'toast-operacional';
+  toast.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:10002; background:#ff4d4d; color:#fff; padding:12px 20px; border-radius:12px; font-weight:bold; box-shadow:0 10px 30px rgba(0,0,0,0.5);';
+  toast.innerHTML = `<div style="font-size:10px; opacity:0.8;">${titulo}</div><div>${msg}</div>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+
+/* ---------------------------------------------------------------
+   PMRV CORE - NAVEGAÇÃO E HANDLERS
+--------------------------------------------------------------- */
 PMRV.core = (function() {
   const SCREENS = [
     'home', 'assumir', 'patrulhamento', 'infracoes', 'envolvidos', 'pmrv', 'danos',
     'relatorio', 'pesos', 'tacografo', 'croqui', 'rodovias-ref', 'referencias-proximas', 'docs',
-    'guia-ciclomotores', 'guia-estrangeiros', 'prazos-transito', 'prazos-gerais',
-    'guia-aet', 'guia-sinistros', 'help', 'ended', 'module-missing'
+    'prazos-transito', 'help', 'ended', 'module-missing'
   ];
+  
   const APP_WIDE_SCREENS = new Set(['infracoes', 'croqui']);
 
   function getExistingScreen(name) {
@@ -54,20 +158,9 @@ PMRV.core = (function() {
     SCREENS.forEach(id => {
       const el = document.getElementById('screen-' + id);
       if (!el) return;
-
       const isActive = id === target;
       el.classList.toggle('active', isActive);
-      if (!isActive) return;
-
-      el.scrollTop = 0;
-
-      setTimeout(() => {
-        const heading = el.querySelector('h1, h2, .card-title, .btn');
-        if (heading) {
-          heading.setAttribute('tabindex', '-1');
-          heading.focus();
-        }
-      }, 250);
+      if (isActive) el.scrollTop = 0;
     });
 
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -75,274 +168,115 @@ PMRV.core = (function() {
       btn.classList.toggle('active', btnId === target || (target === 'home' && btnId === 'home'));
     });
 
-    const app = document.querySelector('.app');
-    if (app) app.classList.toggle('app-wide', APP_WIDE_SCREENS.has(target));
-
     const container = document.getElementById('main-container');
     if (container) container.scrollTop = 0;
 
+    // Inicializadores de Módulos
     if (target === 'pesos' && typeof window.pes_init === 'function') window.pes_init();
     if (target === 'tacografo' && typeof window.tac_init === 'function') window.tac_init();
-    if (target === 'prazos-transito' && typeof window.prazos_init === 'function') window.prazos_init();
     if (target === 'patrulhamento' && typeof window.pat_init === 'function') window.pat_init();
-    if (target === 'pmrv' && typeof window.pmrv_init === 'function') window.pmrv_init();
     if (target === 'infracoes' && typeof window.infra_init === 'function') window.infra_init();
     if (target === 'danos' && typeof window.danPrepararTela === 'function') window.danPrepararTela();
+    if (target === 'referencias-proximas' && typeof window.ref_prox_init === 'function') window.ref_prox_init();
     if (typeof window.gps_onScreenChange === 'function') window.gps_onScreenChange(target);
     if (target === 'docs') docs_switchTab('bases');
-  }
-
-  function cic_switchTab(tab) {
-    const contentRegras = document.getElementById('cic-content-regras');
-    const contentDecisao = document.getElementById('cic-content-decisao');
-    const tabRegras = document.getElementById('tab-cic-regras');
-    const tabDecisao = document.getElementById('tab-cic-decisao');
-
-    if (contentRegras && contentDecisao) {
-      contentRegras.classList.toggle('hidden', tab !== 'regras');
-      contentDecisao.classList.toggle('hidden', tab !== 'decisao');
-      tabRegras?.classList.toggle('btn-primary', tab === 'regras');
-      tabDecisao?.classList.toggle('btn-primary', tab === 'decisao');
-    }
   }
 
   function docs_switchTab(tab) {
     const tabs = ['bases', 'ciclomotores', 'estrangeiros', 'aet', 'pops'];
     tabs.forEach(id => {
-      document.getElementById('docs-content-' + id)?.classList.toggle('hidden', id !== tab);
-      document.getElementById('tab-docs-' + id)?.classList.toggle('btn-primary', id === tab);
+      const el = document.getElementById('docs-content-' + id);
+      const btn = document.getElementById('tab-docs-' + id);
+      if (el) el.classList.toggle('hidden', id !== tab);
+      if (btn) btn.classList.toggle('btn-primary', id === tab);
     });
-
     if (tab === 'ciclomotores') docs_ciclomotoresSwitchTab('');
   }
 
   function docs_ciclomotoresSwitchTab(tab) {
-    const tabs = ['lei', 'fiscalizar', 'como-fazer', 'autuar', 'nao-autuar', 'equipamentos', 'documentos'];
-    tabs.forEach(id => {
-      document.getElementById('docs-ciclomotores-' + id)?.classList.toggle('hidden', !tab || id !== tab);
-      document.getElementById('tab-docs-ciclomotores-' + id)?.classList.toggle('btn-primary', id === tab);
+    const subtabs = ['lei', 'fiscalizar', 'como-fazer', 'autuar', 'nao-autuar', 'equipamentos', 'documentos'];
+    subtabs.forEach(id => {
+      const el = document.getElementById('docs-ciclomotores-' + id);
+      const btn = document.getElementById('tab-docs-ciclomotores-' + id);
+      if (el) el.classList.toggle('hidden', !tab || id !== tab);
+      if (btn) btn.classList.toggle('btn-primary', id === tab);
     });
-    document.getElementById('docs-ciclomotores-placeholder')?.classList.toggle('hidden', !!tab);
-  }
-
-  function sin_zoom(code, title, desc, img) {
-    const modal = document.getElementById('sin-zoom-modal');
-    const codeEl = document.getElementById('sin-zoom-code');
-    const titleEl = document.getElementById('sin-zoom-title');
-    const descEl = document.getElementById('sin-zoom-desc');
-    const imgEl = document.getElementById('sin-zoom-img');
-    if (!modal || !codeEl || !titleEl || !descEl || !imgEl) return;
-
-    codeEl.innerText = code;
-    titleEl.innerText = title;
-    descEl.innerText = desc;
-    imgEl.src = 'img/sinistros/' + img;
-    modal.classList.add('show');
-  }
-
-  function sin_closeZoom() {
-    document.getElementById('sin-zoom-modal')?.classList.remove('show');
-  }
-
-  function sin_closeZoomOnBackdrop(event) {
-    if (event.target.id === 'sin-zoom-modal') sin_closeZoom();
+    const placeholder = document.getElementById('docs-ciclomotores-placeholder');
+    if (placeholder) placeholder.classList.toggle('hidden', !!tab);
   }
 
   function core_zoomImage(src) {
     const modal = document.getElementById('core-zoom-modal');
     const img = document.getElementById('core-zoom-img');
-    if (!modal || !img || !src) return;
-    img.src = src;
-    modal.classList.add('show');
+    if (modal && img && src) {
+      img.src = src;
+      modal.classList.add('show');
+    }
   }
 
   function core_fecharZoom() {
     document.getElementById('core-zoom-modal')?.classList.remove('show');
   }
 
-  function core_fecharZoomOnBackdrop(event) {
-    if (event.target.id === 'core-zoom-modal') core_fecharZoom();
-  }
-
   async function limparCache() {
-    Object.keys(window.localStorage || {})
-      .filter(key => key.startsWith('pmrv_'))
-      .forEach(key => window.localStorage.removeItem(key));
-
-    Object.keys(window.sessionStorage || {})
-      .filter(key => key.startsWith('pmrv_'))
-      .forEach(key => window.sessionStorage.removeItem(key));
-
-    if (PMRV.dataManager?.clearCache) {
-      await PMRV.dataManager.clearCache();
-    }
-
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames
-          .filter(name => name.startsWith('pmrv-4em1'))
-          .map(name => caches.delete(name))
-      );
-    }
-  }
-
-  async function confirmarLimpezaCompleta() {
-    const ok = window.confirm('ATENÇÃO: Isso apagará todos os dados salvos e caches offline do app. Deseja continuar?');
-    if (!ok) return;
-
-    try {
-      await limparCache();
-      window.location.reload();
-    } catch (err) {
-      console.error('[PMRV] Falha ao limpar dados locais.', err);
-      window.alert('Não foi possível concluir a limpeza completa dos dados locais.');
-    }
-  }
-
-  function splitArguments(argsSource) {
-    const args = [];
-    let current = '';
-    let quote = '';
-
-    for (let i = 0; i < argsSource.length; i++) {
-      const char = argsSource[i];
-      const prev = argsSource[i - 1];
-
-      if ((char === '"' || char === '\'') && prev !== '\\') {
-        if (!quote) {
-          quote = char;
-        } else if (quote === char) {
-          quote = '';
-        }
-        current += char;
-        continue;
-      }
-
-      if (char === ',' && !quote) {
-        args.push(current.trim());
-        current = '';
-        continue;
-      }
-
-      current += char;
-    }
-
-    if (current.trim()) args.push(current.trim());
-    return args;
-  }
-
-  function parseDeclarativeArg(raw, target, event) {
-    if (raw === 'this') return target;
-    if (raw === 'event') return event;
-    if (raw === 'true') return true;
-    if (raw === 'false') return false;
-    if (raw === 'null') return null;
-    if (raw === 'undefined') return undefined;
-
-    if ((raw.startsWith('\'') && raw.endsWith('\'')) || (raw.startsWith('"') && raw.endsWith('"'))) {
-      return raw.slice(1, -1).replace(/\\'/g, '\'').replace(/\\"/g, '"');
-    }
-
-    if (/^-?\d+(\.\d+)?$/.test(raw)) {
-      return Number(raw);
-    }
-
-    throw new Error(`Argumento declarativo não suportado: ${raw}`);
-  }
-
-  function executeDeclarativeHandler(attr, target, event) {
-    const code = target.getAttribute(attr)?.trim();
-    if (!code) return;
-
-    const match = code.match(/^([A-Za-z_$][\w$]*)\s*\((.*)\)$/);
-    if (!match) {
-      throw new Error(`Handler declarativo inválido: ${code}`);
-    }
-
-    const fnName = match[1];
-    const fn = window[fnName];
-    if (typeof fn !== 'function') {
-      throw new Error(`Função declarativa não encontrada: ${fnName}`);
-    }
-
-    const argsSource = match[2].trim();
-    const args = argsSource ? splitArguments(argsSource).map(arg => parseDeclarativeArg(arg, target, event)) : [];
-    return fn.apply(window, args);
+    Object.keys(window.localStorage || {}).filter(k => k.startsWith('pmrv_')).forEach(k => localStorage.removeItem(k));
+    if (PMRV.dataManager?.clearCache) await PMRV.dataManager.clearCache();
+    window.location.reload();
   }
 
   function bindDeclarativeHandlers() {
-    document.addEventListener('click', event => {
-      const target = event.target.closest('[data-click]');
-      if (!target) return;
-      try {
-        executeDeclarativeHandler('data-click', target, event);
-      } catch (err) {
-        console.error(err);
-      }
-    });
+    const execute = (attr, target, event) => {
+      const code = target.getAttribute(attr)?.trim();
+      if (!code) return;
+      const match = code.match(/^([A-Za-z_$][\w$]*)\s*\((.*)\)$/);
+      if (!match) return;
+      const fn = window[match[1]];
+      if (typeof fn !== 'function') return;
+      
+      const argsRaw = match[2].trim();
+      const args = argsRaw ? argsRaw.split(',').map(a => {
+        a = a.trim();
+        if (a === 'this') return target;
+        if (a === 'event') return event;
+        if (a.startsWith('\'') || a.startsWith('"')) return a.slice(1, -1);
+        return a;
+      }) : [];
+      fn.apply(window, args);
+    };
 
-    document.addEventListener('input', event => {
-      const target = event.target.closest('[data-input]');
-      if (!target) return;
-      try {
-        executeDeclarativeHandler('data-input', target, event);
-      } catch (err) {
-        console.error(err);
-      }
+    document.addEventListener('click', e => {
+      const t = e.target.closest('[data-click]');
+      if (t) execute('data-click', t, e);
     });
-
-    document.addEventListener('change', event => {
-      const target = event.target.closest('[data-change]');
-      if (!target) return;
-      try {
-        executeDeclarativeHandler('data-change', target, event);
-      } catch (err) {
-        console.error(err);
-      }
+    document.addEventListener('input', e => {
+      const t = e.target.closest('[data-input]');
+      if (t) execute('data-input', t, e);
     });
-
-    document.addEventListener('keydown', event => {
-      if (event.key !== 'Enter') return;
-      const target = event.target.closest('[data-keydown-enter]');
-      if (!target) return;
-      event.preventDefault();
-      try {
-        executeDeclarativeHandler('data-keydown-enter', target, event);
-      } catch (err) {
-        console.error(err);
-      }
+    document.addEventListener('change', e => {
+      const t = e.target.closest('[data-change]');
+      if (t) execute('data-change', t, e);
     });
   }
 
   return {
-    go,
-    cic_switchTab,
-    docs_switchTab,
-    docs_ciclomotoresSwitchTab,
-    sin_zoom,
-    sin_closeZoom,
-    sin_closeZoomOnBackdrop,
-    core_zoomImage,
-    core_fecharZoom,
-    core_fecharZoomOnBackdrop,
-    limparCache,
-    confirmarLimpezaCompleta,
-    bindDeclarativeHandlers
+    go, docs_switchTab, docs_ciclomotoresSwitchTab,
+    core_zoomImage, core_fecharZoom, limparCache, bindDeclarativeHandlers
   };
 })();
 
+// MAPEAMENTO GLOBAL
 window.go = PMRV.core.go;
-window.cic_switchTab = PMRV.core.cic_switchTab;
 window.docs_switchTab = PMRV.core.docs_switchTab;
 window.docs_ciclomotoresSwitchTab = PMRV.core.docs_ciclomotoresSwitchTab;
-window.sin_zoom = PMRV.core.sin_zoom;
-window.sin_closeZoom = PMRV.core.sin_closeZoom;
-window.sin_closeZoomOnBackdrop = PMRV.core.sin_closeZoomOnBackdrop;
 window.core_zoomImage = PMRV.core.core_zoomImage;
 window.core_fecharZoom = PMRV.core.core_fecharZoom;
-window.core_fecharZoomOnBackdrop = PMRV.core.core_fecharZoomOnBackdrop;
-window.core_limparCache = PMRV.core.limparCache;
-window.core_confirmarLimpezaCompleta = PMRV.core.confirmarLimpezaCompleta;
+window.core_confirmarLimpezaCompleta = PMRV.core.limparCache;
+window.core_toggleTactical = PMRV.tactical.toggle;
+window.core_formatarKM = core_formatarKM;
 
-document.addEventListener('DOMContentLoaded', PMRV.core.bindDeclarativeHandlers);
+document.addEventListener('DOMContentLoaded', () => {
+  PMRV.tactical.init();
+  PMRV.db.init();
+  PMRV.geofence.init();
+  PMRV.core.bindDeclarativeHandlers();
+});

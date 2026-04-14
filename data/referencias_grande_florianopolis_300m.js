@@ -1,6 +1,10 @@
 window.REFERENCIAS_300M = {
-  "title": "Referências a cada 300m - Detalhamento Operacional",
+  "title": "Referências a cada 300m - Detalhamento Técnico-Operacional",
+  "version": "2.0 (EITTR)",
   "interval_m": 300,
+  "precision_metrics": {
+    "avg_linear_error_m": 334.1835
+  },
   "rows": [
     {
       "rodovia": "SC-281",
@@ -1466,7 +1470,7 @@ window.REFERENCIAS_300M = {
       "km_label": "14,400",
       "latitude": -27.537247,
       "longitude": -48.508748,
-      "descricao": "Aprox. 99m antes de 📍 Posto PMRv (Polícia Rodoviária) - Pedágio Desativado",
+      "descricao": "Aprox. 99m antes de ⚠️ PONTO CRÍTICO: Posto PMRv (Polícia Rodoviária)",
       "google_maps": "https://www.google.com/maps/search/?api=1&query=-27.53724721521168,-48.5087482733191"
     },
     {
@@ -1475,7 +1479,7 @@ window.REFERENCIAS_300M = {
       "km_label": "14,700",
       "latitude": -27.539397,
       "longitude": -48.506911,
-      "descricao": "Aprox. 200m após 📍 Posto PMRv (Polícia Rodoviária) - Pedágio Desativado",
+      "descricao": "Aprox. 200m após ⚠️ PONTO CRÍTICO: Posto PMRv (Polícia Rodoviária)",
       "google_maps": "https://www.google.com/maps/search/?api=1&query=-27.539396795190143,-48.50691051420387"
     },
     {

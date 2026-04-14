@@ -61,20 +61,30 @@
     </div>
   </div>
 
-  <!-- TOPBAR COMPACTA -->
+  <!-- TOPBAR COMPACTA (EITTR PRO) -->
   <header class="topbar" role="banner">
-    <div class="brand">
+    <div class="brand" data-click="go('home')">
       <img src="img/extracted_1.png" alt="PMRv" class="brand-logo" />
-      <span style="font-weight: 800; font-size: 14px; letter-spacing: -0.5px;">PMRV-SC</span>
+      <div style="display:flex; flex-direction:column; line-height:1.1;">
+        <span style="font-weight: 900; font-size: 15px; letter-spacing: -0.5px;">PMRV-SC</span>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <div class="brand-pill" style="padding:2px 6px; font-size:9px;">
+            <div class="brand-dot"></div>
+            <span>OFFLINE-PRO</span>
+          </div>
+          <span id="db-status" title="Dados protegidos em IndexedDB" style="font-size:10px; cursor:help;">🛡️</span>
+        </div>
+      </div>
     </div>
     
-    <div class="topbar-shortcuts" style="display: flex; gap: 14px; align-items: center;">
-      <button class="nav-icon-btn" data-click="go('patrulhamento')" title="Patrulhamento" style="background:none; border:none; font-size:22px; padding:4px; cursor:pointer; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">🚔</button>
-      <button class="nav-icon-btn" data-click="go('docs')" title="Documentos" style="background:none; border:none; font-size:20px; padding:4px; cursor:pointer; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">📄</button>
+    <div class="topbar-actions" style="display: flex; gap: 8px; align-items: center;">
+      <button class="btn btn-sm" data-click="core_toggleTactical()" title="Visão Noturna Tática" style="min-height:36px; padding:0 10px;">👁️ Tático</button>
+      <button class="nav-icon-btn" data-click="go('patrulhamento')" title="Patrulhamento" style="background:none; border:none; font-size:22px; padding:4px; cursor:pointer;">🚔</button>
+      <button class="nav-icon-btn" data-click="go('docs')" title="Documentos" style="background:none; border:none; font-size:20px; padding:4px; cursor:pointer;">📄</button>
     </div>
 
-    <div id="top-gps-info" style="font-size: 10px; text-align: right; color: var(--primary);">
-      <span id="header-gps-txt">Localizando...</span>
+    <div id="top-gps-info" style="font-size: 10px; text-align: right; color: var(--primary); max-width: 80px;">
+      <span id="header-gps-txt" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Localizando...</span>
     </div>
   </header>
 
@@ -109,7 +119,7 @@
         </button>
 
         <button class="menu-card" data-color="amber" data-click="go('infracoes')">
-          <div class="menu-icon"><img src="infrações.png" alt="Consulta de Infrações" class="menu-icon-img menu-icon-img-infra" /></div>
+          <div class="menu-icon"><img src="img/extracted_4.png" alt="Consulta de Infrações" class="menu-icon-img menu-icon-img-infra" /></div>
           <div class="menu-title">Consulta de Infrações</div>
           <div class="menu-desc">Pesquisar diretamente na base local do aplicativo</div>
           <span class="menu-arrow">›</span>
@@ -137,7 +147,7 @@
         </button>
 
         <button class="menu-card" data-color="blue" data-click="go('referencias-proximas')" aria-label="Abrir Referências Próximas (200m)">
-          <div class="menu-icon">📍</div>
+          <div class="menu-icon"><img src="refe.png" alt="Referências" class="menu-icon-img" /></div>
           <div class="menu-title">Referências de 200m</div>
           <div class="menu-desc">Marcos georreferenciados na Grande Floripa</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -165,7 +175,7 @@
         </button>
 
         <button class="menu-card" data-color="purple" data-click="go('croqui')" aria-label="Abrir Ferramenta de Croqui Técnico">
-          <div class="menu-icon"><img src="Croqui.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-croqui" /></div>
+          <div class="menu-icon"><img src="img/Croqui.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-croqui" /></div>
           <div class="menu-title">Croqui</div>
           <div class="menu-desc">Esboço técnico do local do acidente</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -179,14 +189,14 @@
         </button>
 
         <button class="menu-card" data-color="green" data-click="go('docs')" aria-label="Abrir CTB Brasileiro">
-          <div class="menu-icon"><img src="ctb.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-ctb" /></div>
+          <div class="menu-icon"><img src="img/extracted_4.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-ctb" /></div>
           <div class="menu-title">CTB Brasileiro</div>
           <div class="menu-desc">Consulta rápida sobre regras, documentos e fiscalização</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
         <button class="menu-card" data-color="blue" data-click="go('help')" aria-label="Abrir Ajuda e Manual de Uso">
-          <div class="menu-icon"><img src="AJUDA.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-help" /></div>
+          <div class="menu-icon"><img src="img/patrulha.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-help" /></div>
           <div class="menu-title">Ajuda</div>
           <div class="menu-desc">Manual de uso de cada opção</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -953,8 +963,12 @@
 
     <div class="card infra-page">
       <div class="infra-hero">
+        <img src="img/extracted_4.png" alt="" class="infra-hero-icon-bg" style="position:absolute; right:-20px; top:-20px; width:150px; opacity:0.1; transform:rotate(15deg); pointer-events:none;">
         <div class="infra-hero-copy">
-          <h2 class="card-title infra-title">Consulta de Infrações</h2>
+          <h2 class="card-title infra-title card-title-with-icon">
+            <img src="img/extracted_4.png" alt="" class="card-title-icon" aria-hidden="true">
+            Consulta de Infrações
+          </h2>
           <p class="card-sub infra-sub">Pesquisa direta na base local com filtros por texto, categoria e medida administrativa, sem abrir outra página.</p>
         </div>
       </div>
@@ -1674,7 +1688,10 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title">🗺️ Croqui Dinâmico</h2>
+          <h2 class="card-title card-title-with-icon">
+            <img src="img/Croqui.png" alt="" class="card-title-icon" aria-hidden="true">
+            Croqui Dinâmico
+          </h2>
           <p class="card-sub">Monte o cenário, arraste elementos e exporte a imagem final.</p>
         </div>
       </div>
@@ -1770,7 +1787,16 @@
             <button class="btn btn-sm btn-primary" data-cat-id="bank" data-click="ref_prox_toggleCat(this, 'bank')">🏦 Banco</button>
             <button class="btn btn-sm btn-primary" data-cat-id="icecream" data-click="ref_prox_toggleCat(this, 'icecream')">🍦 Sorveteria</button>
             <button class="btn btn-sm btn-primary" data-cat-id="restroom" data-click="ref_prox_toggleCat(this, 'restroom')">🚻 Banheiro</button>
+            <button class="btn btn-sm btn-primary" data-cat-id="condo" data-click="ref_prox_toggleCat(this, 'condo')">🏢 Condomínio</button>
           </div>
+          <div class="flex items-center gap-8 mt-12">
+            <label class="switch">
+              <input type="checkbox" id="ref_prox_offroad" onchange="ref_prox_toggleOffroad(this)">
+              <span class="slider round"></span>
+            </label>
+            <span style="font-size:12px; color:var(--text); font-weight:600;">Incluir Referências Off-Road (até 100m fora da rodovia)</span>
+          </div>
+        </div>
         </div>
 
         <button class="btn btn-primary btn-full btn-lg" id="btn-ref-prox-buscar" data-click="ref_prox_buscar()">🔍 Buscar ao longo da rota</button>
@@ -1914,7 +1940,10 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title">📄 CTB Brasileiro</h2>
+          <h2 class="card-title card-title-with-icon">
+            <img src="img/extracted_4.png" alt="" class="card-title-icon" aria-hidden="true">
+            CTB Brasileiro
+          </h2>
           <p class="card-sub">Consulta rápida sobre regras, documentos, ciclomotores e exigências operacionais.</p>
         </div>
       </div>
@@ -2206,7 +2235,10 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title card-title-with-icon"><img src="AJUDA.png" alt="" class="card-title-icon" aria-hidden="true">Ajuda</h2>
+          <h2 class="card-title card-title-with-icon">
+            <img src="img/patrulha.png" alt="" class="card-title-icon" aria-hidden="true">
+            Ajuda
+          </h2>
           <p class="card-sub">Resumo prático de como usar cada módulo do aplicativo.</p>
         </div>
       </div>
@@ -2589,6 +2621,7 @@
   <script src="js/danos-state.js"></script>
   <script src="js/danos-report.js"></script>
   <script src="js/danos-render.js"></script>
+  <script src="data/danos_diagramas.js"></script>
   <script src="js/danos.js"></script>
   <script src="js/relatorio.js"></script>
   <script src="js/infracoes.js"></script>
@@ -2599,6 +2632,7 @@
   <script src="js/calendarios.js"></script>
   <script src="js/croqui.js"></script>
   <script src="js/referencias-proximas.js"></script>
+  <script src="data/referencias_grande_florianopolis_200m.js"></script>
   <script src="data/referencias_grande_florianopolis_100m.js"></script>
 
 </body>

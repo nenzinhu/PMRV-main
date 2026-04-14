@@ -303,6 +303,11 @@ function gps_obterLocalizacao() {
                 if (typeof window.ref_prox_atualizarReferenciaPrincipal === 'function') {
                     window.ref_prox_atualizarReferenciaPrincipal(resultado.rodovia, resultado.km);
                 }
+
+                // Verificação de Geofencing (EITTR PRO)
+                if (window.PMRV && window.PMRV.geofence) {
+                    window.PMRV.geofence.verificar(resultado.rodovia, resultado.km);
+                }
             }
 
             gps_setResultado({

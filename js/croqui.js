@@ -95,6 +95,227 @@ function croqui_createGroup(idPrefix, type, transform) {
   return element;
 }
 
+function croqui_selecionar(element) {
+  croqui_clearSelection();
+  if (!element) return;
+  CROQUI_SELECTED = element;
+  element.style.filter = 'drop-shadow(0 0 4px #3498db)';
+  element.setAttribute('stroke', '#3498db');
+  element.setAttribute('stroke-width', '2');
+}
+
+function croqui_clearSelection() {
+  if (CROQUI_SELECTED) {
+    CROQUI_SELECTED.style.filter = '';
+    CROQUI_SELECTED.removeAttribute('stroke');
+    CROQUI_SELECTED.removeAttribute('stroke-width');
+  }
+  CROQUI_SELECTED = null;
+}
+
+function croqui_abrirModalIcones() {
+  const modal = document.getElementById('croqui-modal-icones');
+  if (modal) {
+    modal.classList.remove('hidden');
+    croqui_filtrarIcones('veiculo');
+  }
+}
+
+function croqui_fecharModal() {
+  document.getElementById('croqui-modal-icones')?.classList.add('hidden');
+}
+
+function croqui_fecharModalOnBackdrop(e) {
+  if (e.target.id === 'croqui-modal-icones') croqui_fecharModal();
+}
+
+function croqui_filtrarIcones(tipo) {
+  const btns = document.querySelectorAll('.croqui-icon-btn');
+  btns.forEach(btn => btn.classList.toggle('hidden', !btn.classList.contains(tipo)));
+  
+  const tabs = document.querySelectorAll('.croqui-icon-tabs .btn');
+  tabs.forEach(btn => {
+    const isTarget = btn.getAttribute('data-click').includes(`'${tipo}'`);
+    btn.classList.toggle('btn-primary', isTarget);
+  });
+}
+
+function croqui_inserirIcone(tipo) {
+  const config = CROQUI_ICON_MAP[tipo];
+  if (!config) return;
+
+  const layer = croqui_getLayer('croqui-objetos');
+  const g = croqui_createGroup('icon', tipo, { ...CROQUI_DEFAULT_TRANSFORM });
+
+  if (config.asRect) {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', '-30');
+    rect.setAttribute('y', '-5');
+    rect.setAttribute('width', '60');
+    rect.setAttribute('height', '10');
+    rect.setAttribute('fill', '#444');
+    g.appendChild(rect);
+  } else {
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('font-size', config.fontSize);
+    text.textContent = config.emoji;
+    g.appendChild(text);
+
+    if (config.label) {
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('y', (config.fontSize / 2) + 10);
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', '#fff');
+      label.setAttribute('font-weight', 'bold');
+      label.textContent = config.label;
+      g.appendChild(label);
+    }
+  }
+
+  layer.appendChild(g);
+  croqui_selecionar(g);
+  croqui_fecharModal();
+  return g;
+}
+
+async function croqui_inserirSvg(filename, isObstacle = false) {
+  try {
+    const response = await fetch(`img/sinistros/${filename}`);
+    if (!response.ok && isObstacle) {
+      // Tenta na raiz se for obstáculo (ex: pedestre.svg)
+      const resp2 = await fetch(filename);
+      if (!resp2.ok) throw new Error();
+      return await _processSvg(resp2);
+    }
+    return await _processSvg(response);
+  } catch (err) {
+    console.error('Erro ao carregar SVG:', filename);
+  }
+
+  async function _processSvg(resp) {
+    const svgText = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) return;
+
+    const layer = croqui_getLayer('croqui-objetos');
+    const g = croqui_createGroup('svg', 'sinistro', { ...CROQUI_DEFAULT_TRANSFORM });
+    
+    // Simplifica o SVG importado para caber no grupo
+    const innerG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    innerG.innerHTML = svgEl.innerHTML;
+    
+    // Tenta centralizar
+    const vb = svgEl.getAttribute('viewBox')?.split(' ').map(Number) || [0,0,100,100];
+    const scale = 40 / Math.max(vb[2], vb[3]);
+    innerG.setAttribute('transform', `scale(${scale}) translate(${-vb[2]/2}, ${-vb[3]/2})`);
+    
+    g.appendChild(innerG);
+    layer.appendChild(g);
+    croqui_selecionar(g);
+    croqui_fecharModal();
+    return g;
+  }
+}
+
+async function croqui_inserirPistaSvg(filename) {
+  try {
+    const response = await fetch(filename);
+    const svgText = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) return;
+
+    const layer = croqui_getLayer('croqui-vias');
+    const g = croqui_createGroup('pista', 'via', { ...CROQUI_DEFAULT_TRANSFORM, x: 210, y: 160 });
+    
+    const innerG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    innerG.innerHTML = svgEl.innerHTML;
+    const vb = svgEl.getAttribute('viewBox')?.split(' ').map(Number) || [0,0,420,320];
+    const scale = 400 / vb[2];
+    innerG.setAttribute('transform', `scale(${scale}) translate(${-vb[2]/2}, ${-vb[3]/2})`);
+    
+    g.appendChild(innerG);
+    layer.appendChild(g);
+    croqui_selecionar(g);
+    croqui_fecharModal();
+  } catch (err) {
+    console.error('Erro ao carregar pista:', err);
+  }
+}
+
+function croqui_adicionarVia(tipo) {
+  const layer = croqui_getLayer('croqui-vias');
+  const g = croqui_createGroup('via', tipo, { ...CROQUI_DEFAULT_TRANSFORM, x: 210, y: 160 });
+  
+  if (tipo === 'reta') {
+    const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r.setAttribute('x', '-210'); r.setAttribute('y', '-40');
+    r.setAttribute('width', '420'); r.setAttribute('height', '80');
+    r.setAttribute('fill', '#333');
+    g.appendChild(r);
+    // Linha central
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    l.setAttribute('x1', '-210'); l.setAttribute('y1', '0');
+    l.setAttribute('x2', '210'); l.setAttribute('y2', '0');
+    l.setAttribute('stroke', '#fff'); l.setAttribute('stroke-dasharray', '10,10');
+    g.appendChild(l);
+  } else if (tipo === 'curva') {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', 'M -210,40 Q 0,40 40,210');
+    p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#333'); p.setAttribute('stroke-width', '80');
+    g.appendChild(p);
+  } else if (tipo === 'cruzamento') {
+    const r1 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r1.setAttribute('x', '-210'); r1.setAttribute('y', '-40');
+    r1.setAttribute('width', '420'); r1.setAttribute('height', '80');
+    r1.setAttribute('fill', '#333');
+    g.appendChild(r1);
+    const r2 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r2.setAttribute('x', '-40'); r2.setAttribute('y', '-160');
+    r2.setAttribute('width', '80'); r2.setAttribute('height', '320');
+    r2.setAttribute('fill', '#333');
+    g.appendChild(r2);
+  }
+  
+  layer.appendChild(g);
+  croqui_selecionar(g);
+}
+
+function croqui_girar() {
+  if (!CROQUI_SELECTED) return;
+  const t = croqui_parseTransform(CROQUI_SELECTED);
+  croqui_applyTransform(CROQUI_SELECTED, { rotate: (t.rotate + 15) % 360 });
+}
+
+function croqui_escala(delta) {
+  if (!CROQUI_SELECTED) return;
+  const t = croqui_parseTransform(CROQUI_SELECTED);
+  const ns = Math.max(0.2, Math.min(5, t.scaleX + delta));
+  croqui_applyTransform(CROQUI_SELECTED, { scaleX: ns, scaleY: ns });
+}
+
+function croqui_espelhar() {
+  if (!CROQUI_SELECTED) return;
+  const t = croqui_parseTransform(CROQUI_SELECTED);
+  croqui_applyTransform(CROQUI_SELECTED, { scaleX: t.scaleX * -1 });
+}
+
+function croqui_camada(direcao) {
+  if (!CROQUI_SELECTED) return;
+  const p = CROQUI_SELECTED.parentNode;
+  if (direcao === 'frente' && CROQUI_SELECTED.nextSibling) {
+    p.insertBefore(CROQUI_SELECTED.nextSibling, CROQUI_SELECTED);
+  } else if (direcao === 'tras' && CROQUI_SELECTED.previousSibling) {
+    p.insertBefore(CROQUI_SELECTED, CROQUI_SELECTED.previousSibling);
+  }
+}
+
 function croqui_init() {
   CROQUI_SVG = document.getElementById('croqui-svg');
   CROQUI_CANVAS = document.getElementById('croqui-canvas');

@@ -9,25 +9,25 @@
   };
 
   const SEARCH_SYNONYM_GROUPS = [
-    ['licenciamento', 'licen', 'licenca', 'licenÃ§a', 'crlv', 'crlv-e', 'crlv e', 'documento', 'documentos', 'doc', 'docu', 'regularizacao', 'regularizaÃ§Ã£o'],
-    ['placa', 'placas', 'identificacao', 'identificaÃ§Ã£o', 'sinal identificador'],
-    ['cnh', 'habilitacao', 'habilitaÃ§Ã£o', 'carteira', 'motorista', 'condutor', 'permissao', 'permissÃ£o', 'ppd', 'acc'],
-    ['documento', 'documentos', 'porte', 'obrigatorio', 'obrigatÃ³rio', 'apresentacao', 'apresentaÃ§Ã£o'],
-    ['veiculo', 'veÃ­culo', 'carro', 'automovel', 'automÃ³vel', 'moto', 'motocicleta', 'motoneta', 'ciclomotor'],
-    ['capacete', 'viseira', 'oculos', 'Ã³culos', 'protecao', 'proteÃ§Ã£o'],
+    ['licenciamento', 'licen', 'licenca', 'licença', 'crlv', 'crlv-e', 'crlv e', 'documento', 'documentos', 'doc', 'docu', 'regularização'],
+    ['placa', 'placas', 'identificação', 'sinal identificador'],
+    ['cnh', 'habilitação', 'carteira', 'motorista', 'condutor', 'permissão', 'ppd', 'acc'],
+    ['documento', 'documentos', 'porte', 'obrigatório', 'apresentação'],
+    ['veículo', 'carro', 'automóvel', 'moto', 'motocicleta', 'motoneta', 'ciclomotor'],
+    ['capacete', 'viseira', 'óculos', 'proteção'],
     ['estacionar', 'estacionamento', 'parar', 'parada'],
-    ['alcool', 'Ã¡lcool', 'embriaguez', 'bebida', 'etilometro', 'etilÃ´metro', 'bafometro', 'bafÃ´metro'],
+    ['alcool', 'álcool', 'embriaguez', 'bebida', 'etilômetro', 'bafômetro'],
     ['celular', 'telefone', 'smartphone', 'aparelho'],
-    ['farol', 'farois', 'farÃ³is', 'luz', 'lanterna', 'iluminacao', 'iluminaÃ§Ã£o'],
+    ['farol', 'faróis', 'luz', 'lanterna', 'iluminação'],
     ['ultrapassagem', 'ultrapassar', 'passagem'],
     ['pedestre', 'faixa', 'travessia', 'passarela'],
-    ['remocao', 'remoÃ§Ã£o', 'guincho', 'recolhimento'],
-    ['retencao', 'retenÃ§Ã£o', 'reter']
+    ['remoção', 'guincho', 'recolhimento'],
+    ['retenção', 'reter']
   ];
 
   const SEARCH_INTENT_RULES = [
     {
-      triggers: ['nao pagou', 'nÃ£o pagou', 'licenciamento atrasado', 'licenciamento vencido', 'nao licenciou', 'nÃ£o licenciou'],
+      triggers: ['não pagou', 'licenciamento atrasado', 'licenciamento vencido', 'não licenciou'],
       expansions: ['licenciamento', 'crlv', 'documento']
     },
     {
@@ -183,7 +183,7 @@
       }
       return new TextDecoder('utf-8').decode(bytes);
     } catch (e) { 
-      console.error('[Infra] Erro na decodificaÃ§Ã£o Base64:', e);
+      console.error('[Infra] Erro na decodificação Base64:', e);
       return ''; 
     }
   }
@@ -192,9 +192,9 @@
     const elements = getElements();
     if (!elements.search) return;
     
-    // Evita reinicializaÃ§Ã£o mÃºltipla de listeners
+    // Evita reinicialização múltipla de listeners
     if (state.initialized) {
-        // Se jÃ¡ inicializado, apenas garante que a tabela esteja renderizada
+        // Se já inicializado, apenas garante que a tabela esteja renderizada
         if (state.records.length > 0) render(state.records);
         return;
     }
@@ -233,10 +233,10 @@
             if (elements.status) elements.status.innerText = 'Base carregada';
             render(state.records);
         } else {
-            throw new Error("Base de dados vazia ou invÃ¡lida.");
+            throw new Error("Base de dados vazia ou inválida.");
         }
     } catch (err) {
-      console.error('Erro ao carregar base de infraÃ§Ãµes:', err);
+      console.error('Erro ao carregar base de infrações:', err);
       if (elements.status) elements.status.innerText = 'Erro ao carregar base de dados.';
     }
   }
