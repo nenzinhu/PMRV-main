@@ -655,7 +655,20 @@
     <!-- STEP 1: escolher veículo -->
     <div class="card" id="dan-step-vehicle">
       <h2 class="card-title">Selecione o tipo de veículo</h2>
-      <p class="card-sub" style="margin-bottom:14px;">Toque no veículo envolvido no sinistro</p>
+      <p class="card-sub" style="margin-bottom:14px;">Toque no veículo envolvido no sinistro ou use a IA Vision</p>
+      
+      <!-- Botão IA Vision de Destaque -->
+      <div style="margin-bottom:20px;">
+        <label class="btn btn-primary btn-full btn-lg" style="background:linear-gradient(135deg, var(--laranja), #ff7e5f); border:none; box-shadow:0 4px 15px rgba(245,130,32,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+          <span style="font-size:24px;">🔍</span>
+          <div style="text-align:left;">
+            <div style="font-size:14px; font-weight:900; letter-spacing:0.5px;">IA VISION — SCAN 360°</div>
+            <div style="font-size:10px; font-weight:600; opacity:0.9;">Identificação automática de danos via foto</div>
+          </div>
+          <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="danIAProcessarFoto(this)">
+        </label>
+      </div>
+
       <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
         <button class="dan-veh-btn" id="dan-btn-carro" data-click="danEscolherVeiculo('carro')">
           <img src="img/extracted_6.png" alt="Carro" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;" data-click-stop="core_zoomImage(this.src)">
@@ -2623,6 +2636,7 @@
   <script src="js/danos-render.js"></script>
   <script src="data/danos_diagramas.js"></script>
   <script src="js/danos.js"></script>
+  <script src="js/danos-ia.js"></script>
   <script src="js/relatorio.js"></script>
   <script src="js/infracoes.js"></script>
   <script src="js/pesos.js"></script>
@@ -2632,6 +2646,7 @@
   <script src="js/calendarios.js"></script>
   <script src="js/croqui.js"></script>
   <script src="js/referencias-proximas.js"></script>
+  <script src="data/referencias_pois_tomtom.js"></script>
   <script src="data/referencias_grande_florianopolis_200m.js"></script>
   <script src="data/referencias_grande_florianopolis_100m.js"></script>
 
