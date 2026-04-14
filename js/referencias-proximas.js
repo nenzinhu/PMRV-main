@@ -242,12 +242,13 @@
 
   window.ref_prox_atualizarReferenciaPrincipal = function(roadName, startKm) {
     const rodovia = roadName !== undefined ? roadName : document.getElementById('ref_prox_rodovia')?.value;
-    const kmRaw = startKm !== undefined ? startKm : document.getElementById('ref_prox_km')?.value;
+    const kmManual = document.getElementById('ref_prox_km')?.value;
+    const km = startKm !== undefined ? startKm : (kmManual ? parseFloat(kmManual.replace(',', '.')) : -1);
     
     const container = document.getElementById('ref_prox_results');
     if (!container) return;
 
-    if (!rodovia) {
+    if (!rodovia || km < 0) {
       container.innerHTML = `
         <div class="card" style="border:1px dashed var(--border); text-align:center; padding:30px;">
           <div style="font-size:40px; margin-bottom:10px;">📍</div>
@@ -255,6 +256,28 @@
           <p style="font-size:12px; color:var(--muted); margin-top:5px;">O marco oficial de 200m será exibido aqui automaticamente.</p>
         </div>
       `;
+      return;
+    }
+
+    // Se temos dados, executa a busca silenciosa (sem os delays da busca manual)
+    const allRefs = window.GRANDE_FLORIANOPOLIS_REFERENCIAS?.rows || [];
+    const filtered = allRefs.filter(r => r.rodovia === rodovia);
+
+    if (filtered.length > 0) {
+      let marcoUnico = filtered[0];
+      let menorDiff = Math.abs(parseFloat(filtered[0].km) - km);
+
+      filtered.forEach(r => {
+        const diff = Math.abs(parseFloat(r.km) - km);
+        if (diff < menorDiff) {
+          menorDiff = diff;
+          marcoUnico = r;
+        }
+      });
+
+      const distMetros = Math.round(menorDiff * 1000);
+      const poiPrincipal = buscarPoiMaisProximo(rodovia, km, 0.050);
+      renderReferenciaPrincipal(marcoUnico, distMetros, poiPrincipal, km);
     }
   };
 

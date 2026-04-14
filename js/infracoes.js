@@ -141,36 +141,115 @@
     });
   }
 
-  function applyFilters() {
-    const elements = getElements();
-    const term = normalizeSearchText(elements.search.value);
-    
-    // Se buscar por velocidade, mostra o assistente
-    if (term.includes('velocidade') || term.includes('radar') || term.includes('km/h')) {
-      renderVelocityTool();
-    } else {
-      const tool = document.getElementById('infra_velocity_tool');
-      if (tool) tool.remove();
-    }
+  function getElements() {
+    return {
+      search: document.getElementById('infra_search'),
+      category: document.getElementById('infra_category'),
+      measure: document.getElementById('infra_measure'),
+      clear: document.getElementById('infra_clear'),
+      total: document.getElementById('infra_totalCount'),
+      filtered: document.getElementById('infra_filteredCount'),
+      catCount: document.getElementById('infra_categoryCount'),
+      status: document.getElementById('infra_status'),
+      container: document.getElementById('infra_list_container'),
+      empty: document.getElementById('infra_emptyState')
+    };
+  }
 
-    const shortcutCode = resolveCodeShortcut(term);
-    const normalizedShortcutCode = normalizeSearchText(shortcutCode);
-    const category = elements.category.value;
-    const measure = elements.measure.value;
-    
-    const filtered = state.records.filter(r => {
-      if (term && r.search.indexOf(term) === -1) {
-        if (normalizedShortcutCode && (normalizeSearchText(r.codigo).indexOf(normalizedShortcutCode) >= 0 || normalizeSearchText(r.artigo).indexOf(normalizedShortcutCode) >= 0)) {
-          return (!category || r.categoria === category) && (!measure || r.medida === measure);
-        }
-        const termParts = expandSearchIntent(term);
-        if (!termParts.every(p => r.search.indexOf(p) >= 0)) return false;
-      }
-      if (category && r.categoria !== category) return false;
-      if (measure && r.medida !== measure) return false;
-      return true;
+  function normalizeSearchText(text) {
+    if (!text) return '';
+    return text.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, ' ')
+      .trim();
+  }
+
+  function resolveCodeShortcut(term) {
+    const s = SEARCH_CODE_SHORTCUTS.find(x => x.terms.includes(term));
+    return s ? s.code : null;
+  }
+
+  function expandSearchIntent(term) {
+    const rules = SEARCH_INTENT_RULES.filter(r => r.triggers.some(t => term.includes(t)));
+    if (rules.length === 0) return [term];
+    return [...new Set([term, ...rules.flatMap(r => r.expansions)])];
+  }
+
+  function parseCsv(text) {
+    const lines = text.split('\n');
+    const headers = lines[0].split(';');
+    return lines.slice(1).filter(l => l.trim()).map(line => {
+      const values = line.split(';');
+      return headers.reduce((obj, h, i) => {
+        obj[h.trim()] = values[i]?.trim();
+        return obj;
+      }, {});
     });
-    render(filtered);
+  }
+
+  function mapRecords(rows) {
+    return rows.map(r => {
+      const art = r.Artigo || '';
+      const desc = r.Descricao || '';
+      const cod = r.Codigo || '';
+      const cat = r.Categoria || '';
+      const med = r.Medida || 'Não se aplica';
+      
+      return {
+        codigo: cod,
+        descricao: desc,
+        artigo: art,
+        categoria: cat,
+        medida: med,
+        search: normalizeSearchText(`${cod} ${desc} ${art} ${cat} ${med} ${r.Infrator || ''}`)
+      };
+    });
+  }
+
+  function fillSelect(el, items, placeholder) {
+    if (!el) return;
+    el.innerHTML = `<option value="">${placeholder}</option>` +
+      items.map(i => `<option value="${i}">${i}</option>`).join('');
+  }
+
+  function categoryClass(cat) {
+    const c = cat.toLowerCase();
+    if (c.includes('gravissima')) return 'infra-badge--gravissima';
+    if (c.includes('grave')) return 'infra-badge--grave';
+    if (c.includes('media')) return 'infra-badge--media';
+    return 'infra-badge--leve';
+  }
+
+  function render(records) {
+    const els = getElements();
+    if (!els.container) return;
+
+    els.container.innerHTML = '';
+    const limited = records.slice(0, 100); // Limite de performance
+
+    limited.forEach(r => {
+      const card = document.createElement('article');
+      card.className = 'infra-card';
+      card.innerHTML = `
+        <div class="infra-card-header">
+          <div class="infra-card-main">
+            <span class="infra-card-code">${r.codigo}</span>
+            <div class="infra-card-title">${r.descricao}</div>
+          </div>
+          <span class="infra-badge ${categoryClass(r.categoria)}">${r.categoria}</span>
+        </div>
+        <div class="infra-card-content">
+          <div class="infra-card-row"><strong>Artigo:</strong> ${r.artigo}</div>
+          <div class="infra-card-row"><strong>Medida:</strong> ${r.medida}</div>
+        </div>
+      `;
+      els.container.appendChild(card);
+    });
+
+    if (els.total) els.total.innerText = state.records.length;
+    if (els.filtered) els.filtered.innerText = records.length;
+    if (els.catCount) els.catCount.innerText = state.categories.length;
+    if (els.empty) els.empty.hidden = records.length > 0;
   }
 
 

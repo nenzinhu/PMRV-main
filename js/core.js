@@ -228,20 +228,39 @@ PMRV.core = (function() {
     const execute = (attr, target, event) => {
       const code = target.getAttribute(attr)?.trim();
       if (!code) return;
-      const match = code.match(/^([A-Za-z_$][\w$]*)\s*\((.*)\)$/);
-      if (!match) return;
-      const fn = window[match[1]];
-      if (typeof fn !== 'function') return;
-      
-      const argsRaw = match[2].trim();
+
+      // Suporta: "funcao", "funcao()", "funcao('arg1', 2, this)"
+      const match = code.match(/^([A-Za-z_$][\w$]*)(?:\s*\((.*)\))?$/);
+      if (!match) {
+        // Fallback: se for complexo, tenta rodar como script
+        try { new Function(code).call(target); } catch(e) {}
+        return;
+      }
+
+      const fnName = match[1];
+      const fn = window[fnName];
+      if (typeof fn !== 'function') {
+        console.warn(`[Core] Função não encontrada: ${fnName}`);
+        return;
+      }
+
+      const argsRaw = match[2] ? match[2].trim() : "";
       const args = argsRaw ? argsRaw.split(',').map(a => {
         a = a.trim();
         if (a === 'this') return target;
         if (a === 'event') return event;
-        if (a.startsWith('\'') || a.startsWith('"')) return a.slice(1, -1);
+        if ((a.startsWith("'") && a.endsWith("'")) || (a.startsWith('"') && a.endsWith('"'))) {
+          return a.slice(1, -1);
+        }
+        if (!isNaN(a) && a !== "") return Number(a);
         return a;
       }) : [];
-      fn.apply(window, args);
+
+      try {
+        fn.apply(window, args);
+      } catch (err) {
+        console.error(`[Core] Erro ao executar ${fnName}:`, err);
+      }
     };
 
     document.addEventListener('click', e => {
@@ -263,6 +282,23 @@ PMRV.core = (function() {
     core_zoomImage, core_fecharZoom, limparCache, bindDeclarativeHandlers
   };
 })();
+
+// UTILITÁRIOS GLOBAIS
+window.copiar = function(elementId, btn) {
+  const text = document.getElementById(elementId)?.innerText || document.getElementById(elementId)?.value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const old = btn.innerHTML;
+    btn.innerHTML = '✅ Copiado!';
+    setTimeout(() => btn.innerHTML = old, 2000);
+  });
+};
+
+window.whatsapp = function(elementId) {
+  const text = document.getElementById(elementId)?.innerText || document.getElementById(elementId)?.value;
+  if (!text) return;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+};
 
 // MAPEAMENTO GLOBAL
 window.go = PMRV.core.go;

@@ -266,6 +266,14 @@ function gps_obterLocalizacao() {
             const resultado = await gps_descreverLocal(latitude, longitude);
 
             if (resultado.encontrado) {
+                // Atualiza cabeçalho da Home (Dash de Localização)
+                const homeRoad = document.getElementById('home-gps-road');
+                const homeKm = document.getElementById('home-gps-km');
+                const homeRef = document.getElementById('home-gps-ref');
+                if (homeRoad) homeRoad.innerText = resultado.rodovia || 'Rodovia';
+                if (homeKm) homeKm.innerText = `KM ${gps_formatarKm(resultado.km)}`;
+                if (homeRef) homeRef.innerText = resultado.referencia || 'Pista Principal';
+
                 // Atualiza PMRV
                 const pmrvRodEl = document.getElementById('pmrv_rodovia');
                 const pmrvKmEl = document.getElementById('pmrv_km');
@@ -294,12 +302,19 @@ function gps_obterLocalizacao() {
                 // Atualiza REFERENCIAS PROXIMAS
                 const refProxRodEl = document.getElementById('ref_prox_rodovia');
                 const refProxKmEl = document.getElementById('ref_prox_km');
+                
+                // Força popular se vazio
+                if (refProxRodEl && refProxRodEl.options.length <= 1) {
+                  if (typeof window.ref_prox_init === 'function') window.ref_prox_init();
+                }
+
                 if (refProxRodEl) {
                     refProxRodEl.value = resultado.rodovia;
                 }
                 if (refProxKmEl) {
                     refProxKmEl.value = gps_formatarKm(resultado.km);
                 }
+                
                 if (typeof window.ref_prox_atualizarReferenciaPrincipal === 'function') {
                     window.ref_prox_atualizarReferenciaPrincipal(resultado.rodovia, resultado.km);
                 }

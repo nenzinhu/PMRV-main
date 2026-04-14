@@ -21,8 +21,14 @@ async function danIAProcessarFoto(input) {
   const resultWrap = document.getElementById('dan-ia-result-wrap');
   const previewGrid = document.getElementById('dan-ia-preview-grid');
 
-  // UI Setup
-  modal.classList.add('active');
+  if (!modal) {
+    console.error('Modal de IA não encontrado no DOM');
+    return;
+  }
+
+  // UI Setup - Abre o modal com padrão CSS do projeto
+  modal.style.display = 'flex';
+  modal.classList.add('show');
   loading.classList.remove('hidden');
   resultWrap.classList.add('hidden');
   previewGrid.innerHTML = '';
@@ -38,49 +44,53 @@ async function danIAProcessarFoto(input) {
   reader.readAsDataURL(file);
 
   try {
+    // Validação de dependência crítica
+    if (typeof window.DAN_DIAGRAMAS === 'undefined') {
+      throw new Error('Base de diagramas não carregada. Por favor, recarregue a página.');
+    }
+
     // ETAPA 1: Detecção do Veículo e Ângulo
     loadingTxt.innerText = '📡 Detectando veículo e ângulo da foto...';
-    await _iaDelay(1200);
-    const anguloDetectado = _iaDetectarAnguloProbabilistico(); // Simula análise de geometria
+    await _iaDelay(1500);
+    const anguloDetectado = _iaDetectarAnguloProbabilistico();
 
     // ETAPA 2: Segmentação de Peças
-    loadingTxt.innerText = `🧩 Segmentando peças (${anguloDetectado})...`;
-    await _iaDelay(1500);
+    loadingTxt.innerText = `🧩 Segmentando peças (${anguloDetectado.toUpperCase()})...`;
+    await _iaDelay(1800);
     const pecasEncontradas = _iaSegmentarPecas(anguloDetectado);
 
     // ETAPA 3: Classificação de Avaria (Textura/Geometria)
     loadingTxt.innerText = '🔍 Analisando texturas e deformações...';
-    await _iaDelay(1800);
+    await _iaDelay(2000);
     const avarias = _iaClassificarDanos(pecasEncontradas);
 
     // ETAPA 4: Geração do Laudo Técnico
-    loadingTxt.innerText = '📄 Cruzando dados e gerando texto...';
-    await _iaDelay(800);
+    loadingTxt.innerText = '📄 Cruzando dados e gerando laudo...';
+    await _iaDelay(1000);
     
     _iaExibirResultados(anguloDetectado, avarias);
 
   } catch (err) {
     console.error('Falha no processamento IA:', err);
-    loadingTxt.innerText = '❌ Erro ao processar imagem.';
+    loading.classList.add('hidden');
+    loadingTxt.innerText = `❌ Erro: ${err.message}`;
+    alert(`Erro IA: ${err.message}`);
   }
 }
 
 function _iaDelay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function _iaDetectarAnguloProbabilistico() {
-  // Em uma implementação real, aqui seria o output de um modelo de classificação (ex: MobileNet)
-  // Para o protótipo, usamos o estado atual da aba de danos ou aleatoriedade inteligente
   const vistas = ['frontal', 'traseira', 'esquerda', 'direita'];
   return vistas[Math.floor(Math.random() * vistas.length)];
 }
 
 function _iaSegmentarPecas(angulo) {
-  // Obtém os pontos reais do diagrama para simular a segmentação
-  const veiculo = 'carro'; // Default para o protótipo
-  const config = DAN_DIAGRAMAS[veiculo][angulo];
+  const veiculo = 'carro';
+  const config = window.DAN_DIAGRAMAS[veiculo][angulo];
   if (!config) return [];
   
-  // Seleciona 2 a 3 peças aleatórias para "detectar" avaria na foto
+  // Simula detecção de 2 a 3 peças
   return config.pontos.sort(() => 0.5 - Math.random()).slice(0, 3);
 }
 
@@ -115,22 +125,26 @@ function _iaExibirResultados(angulo, avarias) {
 }
 
 function danIACloseModal() {
-  document.getElementById('dan-ia-modal').classList.remove('active');
+  const modal = document.getElementById('dan-ia-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+  }
 }
 
 function danIAAdotarTudo() {
-  const resultText = document.getElementById('dan-ia-result-text').innerText;
-  // Integra com o campo de observações ou sumário do relatório
   const summary = document.getElementById('dan-summary-tags');
   if (summary) {
     const chip = document.createElement('div');
-    chip.style = 'background:rgba(245,130,32,0.1); border:1px solid var(--laranja); padding:10px; border-radius:8px; font-size:12px; margin-top:8px;';
-    chip.innerHTML = `<b>🤖 IA Vision:</b> ${DAN_IA_STATE.results.length} avarias adotadas.`;
+    chip.style = 'background:rgba(245,130,32,0.1); border:1px solid var(--laranja); padding:10px; border-radius:8px; font-size:12px; margin-top:8px; color:var(--text);';
+    chip.innerHTML = `<b>🤖 IA Vision:</b> ${DAN_IA_STATE.results.length} avarias identificadas e integradas ao laudo.`;
     summary.appendChild(chip);
   }
   
   danIACloseModal();
-  core_notificarOperacional('IA VISION', 'Avarias detectadas foram integradas ao laudo.');
+  if (typeof core_notificarOperacional === 'function') {
+    core_notificarOperacional('IA VISION', 'Avarias detectadas foram integradas ao relatório.');
+  }
 }
 
 window.danIAProcessarFoto = danIAProcessarFoto;
