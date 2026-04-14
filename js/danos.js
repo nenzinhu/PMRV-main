@@ -29,6 +29,22 @@ const ONIBUS_IMGS = {
   onibus_direita: 'odireita.png'
 };
 
+const DAN_ASSETS_DISPONIVEIS = new Set([
+  'img/extracted_8.png',
+  'img/extracted_9.png',
+  'img/extracted_10.png',
+  'img/extracted_11.png',
+  'traseira.png',
+  'cfrontal.png',
+  'ctraseira.png',
+  'cesquerda.png',
+  'cdireita.png',
+  'ofrontal.png',
+  'otraseira.png',
+  'oesquerda.png',
+  'odireita.png'
+]);
+
 const DAN_VEICULO_META = {
   carro: { label: 'Carro', emoji: '🚗', usa360: false },
   moto: { label: 'Motocicleta', emoji: '🏍️', usa360: true },
@@ -108,8 +124,8 @@ function danOnClickFotoReal(event, img) {
   const pctY = (y / img.height) * 100;
 
   // Busca o ponto mais próximo no diagrama da vista atual
-  const vista = DAN_VISTA_ATUAL; // frontal, traseira, etc
-  const pontos = DAN_DIAGRAMAS[DAN_VEICULO_ATUAL][vista].pontos;
+  const vista = danVista; // frontal, traseira, etc
+  const pontos = DAN_DIAGRAMAS[danVeiculo][vista].pontos;
   
   let melhorPonto = null;
   let menorDistancia = Infinity;
@@ -144,7 +160,7 @@ function danOnClickFotoReal(event, img) {
 function danResetarFotoReal() {
   DAN_FOTO_REAL_ATIVA = null;
   document.getElementById('dan-btn-reset-foto').style.display = 'none';
-  danMudarVista(DAN_VISTA_ATUAL); // Recarrega o SVG original
+  danMudarVista(danVista); // Recarrega o SVG original
 }
 
 window.danCarregarFotoReal = danCarregarFotoReal;
@@ -272,6 +288,27 @@ function danMakeThumbDataUrl(tipo, vista) {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 }
 
+function danGetAssetSrc(src) {
+  return src && DAN_ASSETS_DISPONIVEIS.has(src) ? src : '';
+}
+
+function danGetThumbSrc(tipo, vista) {
+  if (tipo === 'carro') {
+    const thumbs = {
+      frontal: 'carro_frente_nobg.png',
+      traseira: 'carro_tras_nobg.png',
+      esquerda: 'carro_esquerda_nobg.png',
+      direita: 'carro_direita_nobg.png'
+    };
+    const base = CARRO_IMGS[vista];
+    return danGetAssetSrc(thumbs[vista]) || danGetAssetSrc(base) || danMakeThumbDataUrl(tipo, vista);
+  }
+  if (tipo === 'caminhao') return danGetAssetSrc(CAMINHAO_IMGS['caminhao_' + vista]) || danMakeThumbDataUrl(tipo, vista);
+  if (tipo === 'onibus') return danGetAssetSrc(ONIBUS_IMGS['onibus_' + vista]) || danMakeThumbDataUrl(tipo, vista);
+  if (tipo === 'moto') return danGetAssetSrc(MOTO_IMGS['moto_' + vista]) || danMakeThumbDataUrl(tipo, vista);
+  return danMakeThumbDataUrl(tipo, vista);
+}
+
 function danAtualizarThumbs() {
   const thumbs = {
     frontal: document.getElementById('dan-tab-frontal')?.querySelector('.dan-tab-thumb'),
@@ -280,29 +317,8 @@ function danAtualizarThumbs() {
     direita: document.getElementById('dan-tab-direita')?.querySelector('.dan-tab-thumb')
   };
   if (!danVeiculo || danUsa360(danVeiculo)) return;
-  if (danVeiculo === 'carro') {
-    if (thumbs.frontal) thumbs.frontal.src = 'carro_frente_nobg.png';
-    if (thumbs.traseira) thumbs.traseira.src = 'carro_tras_nobg.png';
-    if (thumbs.esquerda) thumbs.esquerda.src = 'carro_esquerda_nobg.png';
-    if (thumbs.direita) thumbs.direita.src = 'carro_direita_nobg.png';
-    return;
-  }
-  if (danVeiculo === 'caminhao') {
-    if (thumbs.frontal) thumbs.frontal.src = CAMINHAO_IMGS.caminhao_frontal;
-    if (thumbs.traseira) thumbs.traseira.src = CAMINHAO_IMGS.caminhao_traseira;
-    if (thumbs.esquerda) thumbs.esquerda.src = CAMINHAO_IMGS.caminhao_esquerda;
-    if (thumbs.direita) thumbs.direita.src = CAMINHAO_IMGS.caminhao_direita;
-    return;
-  }
-  if (danVeiculo === 'onibus') {
-    if (thumbs.frontal) thumbs.frontal.src = ONIBUS_IMGS.onibus_frontal;
-    if (thumbs.traseira) thumbs.traseira.src = ONIBUS_IMGS.onibus_traseira;
-    if (thumbs.esquerda) thumbs.esquerda.src = ONIBUS_IMGS.onibus_esquerda;
-    if (thumbs.direita) thumbs.direita.src = ONIBUS_IMGS.onibus_direita;
-    return;
-  }
   Object.keys(thumbs).forEach(function(vista) {
-    if (thumbs[vista]) thumbs[vista].src = danMakeThumbDataUrl(danVeiculo, vista);
+    if (thumbs[vista]) thumbs[vista].src = danGetThumbSrc(danVeiculo, vista);
   });
 }
 
@@ -364,7 +380,8 @@ function danRenderDiagramaMulti(idx) {
 
   const [,, vbW, vbH] = cfg.vb.split(' ').map(Number);
   const ALL_IMGS = Object.assign({}, CARRO_IMGS, MOTO_IMGS, CAMINHAO_IMGS, ONIBUS_IMGS);
-  const zoomSrc = cfg.img && ALL_IMGS[cfg.img] ? ALL_IMGS[cfg.img] : '';
+  const diagramSrc = cfg.img ? danGetAssetSrc(ALL_IMGS[cfg.img]) : '';
+  const zoomSrc = diagramSrc || '';
 
   let hs = '';
   cfg.pontos.forEach((p, i) => {
@@ -389,13 +406,13 @@ function danRenderDiagramaMulti(idx) {
   });
 
   let bgEl = '';
-  if (cfg.img && ALL_IMGS[cfg.img]) {
+  if (diagramSrc) {
     const isCarro = CARRO_IMGS[cfg.img] !== undefined;
     if (isCarro) {
       bgEl = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0d1117" rx="12"/>
-    <image href="${ALL_IMGS[cfg.img]}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
+    <image href="${diagramSrc}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
     } else {
-      bgEl = `<image href="${ALL_IMGS[cfg.img]}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
+      bgEl = `<image href="${diagramSrc}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
     }
   } else {
     bgEl = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0d1117" rx="12"/>`;
@@ -821,7 +838,8 @@ function danRenderDiagrama() {
   // Build hotspot circles as SVG elements (% coordinates → svg units)
   let hs = '';
   const ALL_IMGS = Object.assign({}, CARRO_IMGS, MOTO_IMGS, CAMINHAO_IMGS, ONIBUS_IMGS);
-  const zoomSrc = cfg.img && ALL_IMGS[cfg.img] ? ALL_IMGS[cfg.img] : '';
+  const diagramSrc = cfg.img ? danGetAssetSrc(ALL_IMGS[cfg.img]) : '';
+  const zoomSrc = diagramSrc || '';
   cfg.pontos.forEach((p, i) => {
     const basePoint = mobileOverrides && mobileOverrides[p.id] && !p.saved ? { ...p, ...mobileOverrides[p.id] } : p;
     const ref = danGetPosicaoAtual(p.id, basePoint);
@@ -846,7 +864,7 @@ function danRenderDiagrama() {
 
   // If we have a real photo for this view, use it as SVG image background
   let bgEl = '';
-  if (cfg.img && ALL_IMGS[cfg.img]) {
+  if (diagramSrc) {
     const isCarro = CARRO_IMGS[cfg.img] !== undefined;
     if (isCarro) {
       if (imgBox) {
@@ -855,10 +873,10 @@ function danRenderDiagrama() {
         const imgW = (100 / imgBox.w) * vbW;
         const imgH = (100 / imgBox.h) * vbH;
         bgEl = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0d1117" rx="12"/>
-    <image href="${ALL_IMGS[cfg.img]}" x="${imgX}" y="${imgY}" width="${imgW}" height="${imgH}" preserveAspectRatio="none"/>`;
+    <image href="${diagramSrc}" x="${imgX}" y="${imgY}" width="${imgW}" height="${imgH}" preserveAspectRatio="none"/>`;
       } else {
         bgEl = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0d1117" rx="12"/>
-    <image href="${ALL_IMGS[cfg.img]}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
+    <image href="${diagramSrc}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
       }
     } else {
       if (imgBox) {
@@ -866,9 +884,9 @@ function danRenderDiagrama() {
         const imgY = -((imgBox.y / imgBox.h) * vbH);
         const imgW = (100 / imgBox.w) * vbW;
         const imgH = (100 / imgBox.h) * vbH;
-        bgEl = `<image href="${ALL_IMGS[cfg.img]}" x="${imgX}" y="${imgY}" width="${imgW}" height="${imgH}" preserveAspectRatio="none"/>`;
+        bgEl = `<image href="${diagramSrc}" x="${imgX}" y="${imgY}" width="${imgW}" height="${imgH}" preserveAspectRatio="none"/>`;
       } else {
-        bgEl = `<image href="${ALL_IMGS[cfg.img]}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
+        bgEl = `<image href="${diagramSrc}" x="0" y="0" width="${vbW}" height="${vbH}" preserveAspectRatio="none"/>`;
       }
     }
   } else {

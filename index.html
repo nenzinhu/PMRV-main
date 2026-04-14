@@ -96,10 +96,16 @@
   ============================================================ -->
   <section id="screen-home" class="screen active" aria-label="Menu principal">
     <div class="card">
-      <div class="card-header">
-        <div>
+      <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; gap:15px;">
+        <div style="flex:1;">
           <h2 class="card-title">O que você precisa?</h2>
           <p class="card-sub">Escolha o módulo para começar.</p>
+        </div>
+        <!-- Dashboard de Localização em Tempo Real -->
+        <div id="home-location-dash" style="flex:0 0 140px; background:rgba(245,130,32,0.08); border:1px solid rgba(245,130,32,0.2); border-radius:12px; padding:8px 10px; text-align:right; min-height:60px; display:flex; flex-direction:column; justify-content:center;">
+          <div id="home-gps-road" style="font-size:13px; font-weight:900; color:var(--primary); line-height:1.1;">Localizando...</div>
+          <div id="home-gps-km" style="font-size:11px; font-weight:700; color:var(--text); margin-top:2px;">KM --</div>
+          <div id="home-gps-ref" style="font-size:9px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">Aguardando sinal</div>
         </div>
       </div>
 
@@ -109,6 +115,13 @@
           <div class="menu-title">Iniciando o Serviço</div>
           <div class="menu-desc">Gerar texto de início de serviço</div>
           <span class="menu-arrow">›</span>
+        </button>
+
+        <button class="menu-card" data-color="blue" data-click="go('telefones')" aria-label="Abrir Telefones Úteis">
+          <div class="menu-icon">📞</div>
+          <div class="menu-title">Telefones Úteis</div>
+          <div class="menu-desc">Emergência e Contatos Oficiais</div>
+          <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
         <button class="menu-card" data-color="blue" data-click="go('patrulhamento')" aria-label="Abrir Consulta de Patrulhamento e Infrações">
@@ -146,12 +159,6 @@
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
-        <button class="menu-card" data-color="blue" data-click="go('referencias-proximas')" aria-label="Abrir Referências Próximas (200m)">
-          <div class="menu-icon"><img src="refe.png" alt="Referências" class="menu-icon-img" /></div>
-          <div class="menu-title">Referências de 200m</div>
-          <div class="menu-desc">Marcos georreferenciados na Grande Floripa</div>
-          <span class="menu-arrow" aria-hidden="true">›</span>
-        </button>
 
         <button class="menu-card" data-color="purple" data-click="go('relatorio')" aria-label="Abrir Relatório Completo de Sinistro">
           <div class="menu-icon"><img src="relatorio.png" class="menu-icon-img menu-icon-img-rel" alt="" aria-hidden="true"></div>
@@ -2241,6 +2248,13 @@
        AJUDA
   ============================================================ -->
   <section id="screen-help" class="screen">
+    <!-- ... conteúdo da ajuda ... -->
+  </section>
+
+  <!-- ============================================================
+       TELEFONES ÚTEIS
+  ============================================================ -->
+  <section id="screen-telefones" class="screen">
     <div class="back-row">
       <button class="btn" data-click="go('home')">← Voltar</button>
       <button class="btn btn-danger" data-click="go('ended')">Sair</button>
@@ -2248,101 +2262,87 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title card-title-with-icon">
-            <img src="img/patrulha.png" alt="" class="card-title-icon" aria-hidden="true">
-            Ajuda
-          </h2>
-          <p class="card-sub">Resumo prático de como usar cada módulo do aplicativo.</p>
+          <h2 class="card-title">📞 Telefones Úteis</h2>
+          <p class="card-sub">Discagem rápida para emergências e suporte.</p>
         </div>
       </div>
 
       <div class="help-stack">
-        <section class="help-block">
-          <h3 class="help-title">Iniciando o Serviço</h3>
-          <p class="help-text">Gera o texto de início de serviço da guarnição.</p>
-          <ul class="help-list">
-            <li>Escolha a viatura ou use a opção manual.</li>
-            <li>Selecione a escala e os policiais.</li>
-            <li>Confirme a viatura e, ao final, gere o texto.</li>
-            <li>Use copiar ou WhatsApp para enviar.</li>
+        <section class="help-block" style="border-left: 4px solid #e74c3c;">
+          <h3 class="help-title" style="color:#e74c3c;">🚨 Emergências</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+            <a href="tel:198" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>198</b><br><small>PMRv (Estadual)</small></a>
+            <a href="tel:191" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>191</b><br><small>PRF (Federal)</small></a>
+            <a href="tel:190" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>190</b><br><small>PM (Urbana)</small></a>
+            <a href="tel:193" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>193</b><br><small>Bombeiros</small></a>
+            <a href="tel:192" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>192</b><br><small>SAMU</small></a>
+            <a href="tel:181" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>181</b><br><small>Polícia Civil (Denúncia)</small></a>
+          </div>
+        </section>
+
+        <section class="help-block" style="border-left: 4px solid #16a34a;">
+          <h3 class="help-title" style="color:#16a34a;">🧭 Polícia Civil e Polícia Científica</h3>
+          <ul class="help-list" style="margin-top:10px;">
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Polícia Civil SC - Disque Denúncia</span>
+              <a href="tel:181" class="btn btn-sm btn-primary">181</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Delegacia Geral da Polícia Civil</span>
+              <a href="tel:04836658488" class="btn btn-sm btn-primary">Ligar</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Polícia Científica / IGP - Medicina Legal (Florianópolis)</span>
+              <a href="tel:04836659342" class="btn btn-sm btn-primary">Ligar</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
+              <span>Polícia Científica / IGP - Criminalística (Florianópolis)</span>
+              <a href="tel:04836659357" class="btn btn-sm btn-primary">Ligar</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="help-block" style="border-left: 4px solid var(--primary);">
+          <h3 class="help-title" style="color:var(--primary);">🚔 Unidades PMRv (Grande Floripa)</h3>
+          <ul class="help-list" style="margin-top:10px;">
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Posto 19 (PMRv - Floripa)</span>
+              <a href="tel:04836655000" class="btn btn-sm btn-primary">Ligar</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>1º BPMRv (Comando)</span>
+              <a href="tel:04836654900" class="btn btn-sm btn-primary">Ligar</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Posto 1 (Palhoça)</span>
+              <a href="tel:04836654900" class="btn btn-sm btn-primary">Ligar</a>
+            </li>
           </ul>
         </section>
 
         <section class="help-block">
-          <h3 class="help-title">Relato de Envolvidos</h3>
-          <p class="help-text">Registra pessoas, veículos, relatos e fotos.</p>
-          <ul class="help-list">
-            <li>Adicione um envolvido por vez.</li>
-            <li>Preencha nome, contato, veículo, local e relato.</li>
-            <li>Anexe as fotos do envolvido no próprio card.</li>
-            <li>No fim, copie o texto ou envie por WhatsApp.</li>
+          <h3 class="help-title">🛠️ Suporte e Rodovias</h3>
+          <ul class="help-list" style="margin-top:10px;">
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Defesa Civil</span>
+              <a href="tel:199" class="btn btn-sm">199</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Túnel Antonieta de Barros / SIE</span>
+              <a href="tel:04836649100" class="btn btn-sm">Ligar</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+              <span>Arteris (Litoral Sul)</span>
+              <a href="tel:08007251771" class="btn btn-sm">Ligar</a>
+            </li>
+            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
+              <span>Detran/SC</span>
+              <a href="tel:154" class="btn btn-sm">154</a>
+            </li>
           </ul>
-        </section>
-
-        <section class="help-block">
-          <h3 class="help-title">Relato Policial</h3>
-          <p class="help-text">Monta o texto padronizado da ocorrência.</p>
-          <ul class="help-list">
-            <li>Preencha SADE, viatura, rodovia, cidade, km e horário.</li>
-            <li>Defina ocorrência, conhecimento, sentido e subtipo.</li>
-            <li>Se houver vítimas, informe as quantidades.</li>
-            <li>O texto é atualizado automaticamente na tela.</li>
-          </ul>
-        </section>
-
-        <section class="help-block">
-          <h3 class="help-title">Danos Aparentes</h3>
-          <p class="help-text">Permite registrar avarias de carro, motocicleta e caminhão com apoio visual.</p>
-          <ul class="help-list">
-            <li>Escolha carro, motocicleta ou caminhão.</li>
-            <li>Toque na peça/ponto desejado.</li>
-            <li>Selecione o tipo de dano.</li>
-            <li>Salve o veículo e gere o relatório individual ou geral.</li>
-          </ul>
-        </section>
-
-        <section class="help-block">
-          <h3 class="help-title">Relatório Completo</h3>
-          <p class="help-text">Consolida envolvidos e danos em um único relatório.</p>
-          <ul class="help-list">
-            <li>Gere o relatório completo com base no que foi preenchido antes.</li>
-            <li>Baixe o texto em `.txt` se necessário.</li>
-            <li>Compartilhe só as fotos dos envolvidos e do local.</li>
-            <li>Você pode anexar até 2 fotos do local nesta tela.</li>
-          </ul>
-        </section>
-
-        <section class="help-block">
-          <h3 class="help-title">Consulta de Infrações</h3>
-          <p class="help-text">Permite pesquisar rapidamente na base local de infrações.</p>
-          <ul class="help-list">
-            <li>Use a busca geral para localizar por código, descrição, artigo ou infrator.</li>
-            <li>Refine o resultado pelos filtros de categoria e medida administrativa.</li>
-            <li>A aba Consulta mostra os resultados completos da base carregada.</li>
-            <li>Ao tocar em uma infração frequente, a pesquisa é aplicada automaticamente.</li>
-          </ul>
-        </section>
-
-        <section class="help-block">
-          <h3 class="help-title">Infrações Frequente</h3>
-          <p class="help-text">Reúne os códigos mais usados para acesso rápido.</p>
-          <ul class="help-list">
-            <li>Toque no card da infração desejada para abrir a consulta com o código preenchido.</li>
-            <li>Os códigos aparecem destacados para facilitar a identificação visual.</li>
-            <li>Depois do toque, a tela volta para a aba de consulta com o filtro aplicado.</li>
-            <li>Use essa aba quando já souber a infração mais comum que deseja localizar.</li>
-          </ul>
-        </section>
-
-        <section class="help-block">
-          <h3 class="help-title">Fluxo Recomendado</h3>
-          <ul class="help-list">
-            <li>1. Iniciando o Serviço</li>
-            <li>2. Relato de Envolvidos</li>
-            <li>3. Relato Policial</li>
-            <li>4. Danos Aparentes</li>
-            <li>5. Relatório Completo</li>
-          </ul>
+          <div style="margin-top:10px; font-size:12px; color:var(--label); line-height:1.5;">
+            Para ocorrências no Túnel Antonieta de Barros, use apoio operacional da PMRv/PM e contato administrativo da SIE.
+          </div>
         </section>
       </div>
     </div>

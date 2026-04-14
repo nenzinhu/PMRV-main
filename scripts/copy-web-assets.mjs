@@ -51,6 +51,17 @@ const include = [
   'referencias-grande-florianopolis-150m.xlsx'
 ];
 
+const optional = new Set([
+  'carro_frente_nobg.png',
+  'carro_tras_nobg.png',
+  'carro_esquerda_nobg.png',
+  'carro_direita_nobg.png',
+  'frente.png',
+  'traseira.png',
+  'lateral esquerda.png',
+  'lateral direita.png'
+]);
+
 function rmrf(target) {
   fs.rmSync(target, { recursive: true, force: true });
 }
@@ -75,6 +86,10 @@ fs.mkdirSync(outDir, { recursive: true });
 for (const entry of include) {
   const src = path.join(root, entry);
   if (!fs.existsSync(src)) {
+    if (optional.has(entry)) {
+      console.warn(`Asset opcional ausente: ${entry}`);
+      continue;
+    }
     throw new Error(`Asset ausente: ${entry}`);
   }
   copyRecursive(src, path.join(outDir, entry));
