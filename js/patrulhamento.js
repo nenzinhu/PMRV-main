@@ -11,6 +11,8 @@ let PAT_AUDIO_CONTEXT = null;
 let PAT_AUDIO_SOURCE = null;
 let PAT_AUDIO_FILTER = null;
 let PAT_MODO_CADASTRO = 'individual';
+const PAT_VOICE_START_WORDS = new Set(['iniciar', 'inicia', 'comecar', 'comeca']);
+const PAT_VOICE_SEGMENT_WORD = 'placa';
 
 const PAT_QUICK_INFRACOES = {
   '518-51': { nome: 'Cinto - Condutor sem cinto', codigo: '518-51', gravidade: 'Grave', artigo: 'Art. 167' },
@@ -74,7 +76,9 @@ const PAT_VOICE_TOKEN_MAP = {
 const PAT_VOICE_STOPWORDS = new Set([
   'placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'letras',
   'numero', 'numeros', 'caractere', 'caracteres', 'iniciar', 'inicio',
-  'transcrever', 'texto', 'captar', 'voz'
+  'transcrever', 'texto', 'captar', 'voz', 'adicionar', 'adicione',
+  'incluir', 'inclua', 'acrescentar', 'acrescente', 'proxima', 'proximo',
+  'nova', 'mais'
 ]);
 
 const PAT_LOTE_MAXIMO = 20;
@@ -246,10 +250,11 @@ async function pat_prepararAudioVoz() {
     PAT_AUDIO_STREAM = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 16000
+        echoCancellation: { ideal: true },
+        noiseSuppression: { ideal: true },
+        autoGainControl: { ideal: true },
+        sampleRate: 16000,
+        sampleSize: 16
       }
     });
 
@@ -334,6 +339,75 @@ function pat_converterFalaEmPlaca(texto) {
   return fallback.length >= 7 ? fallback.slice(0, 7) : fallback;
 }
 
+function pat_tokenVozParaCaractere(token) {
+  if (!token) return '';
+
+  if (PAT_VOICE_TOKEN_MAP[token]) {
+    return PAT_VOICE_TOKEN_MAP[token];
+  }
+
+  if (/^[a-z]$/i.test(token)) {
+    return token.toUpperCase();
+  }
+
+  if (/^\d$/.test(token)) {
+    return token;
+  }
+
+  return '';
+}
+
+function pat_tokensParaPlaca(tokens) {
+  let convertido = '';
+
+  tokens.forEach(token => {
+    if (!token || PAT_VOICE_STOPWORDS.has(token)) return;
+    convertido += pat_tokenVozParaCaractere(token);
+  });
+
+  const match = convertido.match(/[A-Z]{3}[0-9][A-Z0-9][0-9]{2}/);
+  if (match) return match[0];
+
+  const fallback = convertido.replace(/[^A-Z0-9]/g, '');
+  return fallback.length >= 7 ? fallback.slice(0, 7) : fallback;
+}
+
+function pat_extrairPlacasDoComandoVoz(texto) {
+  const normalizado = pat_normalizarTextoVoz(texto);
+  if (!normalizado) {
+    return { ativado: false, placas: [], texto: '' };
+  }
+
+  const tokens = normalizado.split(' ').filter(Boolean);
+  const startIndex = tokens.findIndex(token => PAT_VOICE_START_WORDS.has(token));
+  if (startIndex === -1) {
+    return { ativado: false, placas: [], texto: normalizado };
+  }
+
+  const placas = [];
+  let segmentoAtual = [];
+
+  tokens.slice(startIndex + 1).forEach(token => {
+    if (token === PAT_VOICE_SEGMENT_WORD) {
+      const placa = pat_tokensParaPlaca(segmentoAtual);
+      if (placa.length === 7 && !placas.includes(placa)) {
+        placas.push(placa);
+      }
+      segmentoAtual = [];
+      return;
+    }
+
+    segmentoAtual.push(token);
+  });
+
+  const ultimaPlaca = pat_tokensParaPlaca(segmentoAtual);
+  if (ultimaPlaca.length === 7 && !placas.includes(ultimaPlaca)) {
+    placas.push(ultimaPlaca);
+  }
+
+  return { ativado: true, placas, texto: normalizado };
+}
+
 function pat_aplicarPlacaReconhecida(placa) {
   const placaEl = document.getElementById('pat_placa');
   if (!placaEl) return false;
@@ -378,6 +452,28 @@ function pat_atualizarResumoLote() {
   if (textarea.value.trim() !== normalizado.trim()) {
     textarea.value = normalizado;
   }
+}
+
+function pat_adicionarPlacasAoLote(placas) {
+  const textarea = document.getElementById('pat_lote_placas');
+  if (!textarea || !Array.isArray(placas) || !placas.length) return [];
+
+  const existentes = pat_obterPlacasLote();
+  const adicionadas = [];
+
+  placas.forEach(placa => {
+    const valor = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+    if (valor.length !== 7) return;
+    if (existentes.includes(valor) || adicionadas.includes(valor)) return;
+    if ((existentes.length + adicionadas.length) >= PAT_LOTE_MAXIMO) return;
+    adicionadas.push(valor);
+  });
+
+  if (!adicionadas.length) return [];
+
+  textarea.value = existentes.concat(adicionadas).join('\n');
+  pat_atualizarResumoLote();
+  return adicionadas;
 }
 
 function pat_adicionarPlacaAtualAoLote() {
@@ -464,7 +560,7 @@ function pat_formatarHoraComSegundos(data) {
   return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-function pat_iniciarVozPlaca() {
+async function pat_iniciarVozPlaca() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     alert('Reconhecimento de voz nao suportado neste navegador.');
@@ -483,12 +579,14 @@ function pat_iniciarVozPlaca() {
   const recognition = new SpeechRecognition();
   PAT_SPEECH_RECOGNITION = recognition;
 
+  await pat_prepararAudioVoz();
+
   recognition.lang = 'pt-BR';
   recognition.continuous = false;
   recognition.interimResults = true;
   recognition.maxAlternatives = 3;
 
-  pat_setBotaoVoz('loading', '🎙️ Ouvindo...');
+  pat_setBotaoVoz('loading', '🎙️ Diga: iniciar...');
 
   recognition.onresult = (event) => {
     const resultados = [];
@@ -497,11 +595,31 @@ function pat_iniciarVozPlaca() {
     }
 
     const textoFalado = resultados.join(' ').trim();
-    const placaConvertida = pat_converterFalaEmPlaca(textoFalado);
+    const comando = pat_extrairPlacasDoComandoVoz(textoFalado);
+    const placaPreview = comando.placas[comando.placas.length - 1] || '';
+    const placaConvertida = placaPreview;
 
     if (event.results[event.results.length - 1]?.isFinal) {
-      if (!pat_aplicarPlacaReconhecida(placaConvertida)) {
+      if (!comando.ativado) {
+        alert('Inicie o comando com a palavra "iniciar". Exemplo: iniciar ABC1D23 placa DEF4G56.');
+        return;
+      }
+
+      if (!comando.placas.length) {
         alert(`Nao foi possivel montar a placa com clareza.\n\nReconhecido: ${textoFalado || '---'}`);
+        return;
+      }
+
+      const ultimaPlaca = comando.placas[comando.placas.length - 1];
+      pat_aplicarPlacaReconhecida(ultimaPlaca);
+
+      if (PAT_MODO_CADASTRO === 'lote' || comando.placas.length > 1) {
+        const adicionadas = pat_adicionarPlacasAoLote(comando.placas);
+        if (!adicionadas.length) {
+          alert(`Nenhuma nova placa foi adicionada ao lote.\n\nReconhecido: ${comando.placas.join(', ')}`);
+        } else if (adicionadas.length < comando.placas.length) {
+          alert(`Foram adicionadas ${adicionadas.length} placa(s) ao lote. Algumas ja existiam ou excederam o limite de ${PAT_LOTE_MAXIMO}.`);
+        }
       }
     } else {
       const btn = document.getElementById('btn-pat-placa-voz');
@@ -520,6 +638,7 @@ function pat_iniciarVozPlaca() {
 
   recognition.onend = () => {
     PAT_SPEECH_RECOGNITION = null;
+    pat_liberarAudioVoz();
     pat_setBotaoVoz('idle', '🎙️ Voz');
   };
 

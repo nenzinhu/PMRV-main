@@ -135,6 +135,13 @@
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
+        <button class="menu-card" data-color="amber" data-click="go('telefones')" aria-label="Abrir Telefones Úteis">
+          <div class="menu-icon" aria-hidden="true" style="font-size:30px;">📞</div>
+          <div class="menu-title">Telefones Úteis</div>
+          <div class="menu-desc">Emergência e contatos operacionais</div>
+          <span class="menu-arrow" aria-hidden="true">›</span>
+        </button>
+
         <button class="menu-card" data-color="blue" data-click="go('help')" aria-label="Abrir Ajuda e Manual de Uso">
           <div class="menu-icon"><img src="AJUDA.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-help" /></div>
           <div class="menu-title">Ajuda</div>
@@ -1035,6 +1042,7 @@
             <input type="text" id="pat_placa" maxlength="7" placeholder="ABC1D23" data-input="pat_formatarPlaca(this)" style="flex:1;">
             <button type="button" class="btn btn-sm" id="btn-pat-placa-voz" data-click="pat_iniciarVozPlaca()">🎙️ Voz</button>
           </div>
+          <p class="help-text" style="margin:8px 0 0;">Voz: diga <strong>iniciar</strong> + caracteres da placa. Para varias no lote: <strong>iniciar ABC1D23 placa DEF4G56</strong>.</p>
           <div id="pat_placa_tipo" style="margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:#999;padding:7px 10px;border-radius:999px;display:inline-block;">DIGITANDO...</div>
         </div>
 
@@ -1148,7 +1156,7 @@
 
         <div id="pat_lote_box" class="sub-box hidden">
           <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin-bottom:8px;">Lote compartilhado</div>
-          <p class="help-text" style="margin:0 0 12px;">Use a mesma rodovia, o mesmo KM e a mesma infração para até 20 veículos. Cada nova placa recebe +15 segundos no horário.</p>
+          <p class="help-text" style="margin:0 0 12px;">Use a mesma rodovia, o mesmo KM e a mesma infração para até 20 veículos. Cada nova placa recebe +15 segundos no horário. Repetir <strong>placa</strong> no comando de voz acrescenta outra placa ao lote.</p>
           <div class="flex gap-8 flex-wrap" style="margin-bottom:10px;">
             <button type="button" class="btn" data-click="pat_adicionarPlacaAtualAoLote()">+ Incluir placa atual</button>
             <button type="button" class="btn btn-danger" data-click="pat_limparPlacasLote()">Limpar placas do lote</button>
@@ -1932,6 +1940,26 @@
   </section>
 
   <!-- ============================================================
+       TELEFONES UTEIS
+  ============================================================ -->
+  <section id="screen-telefones" class="screen">
+    <div class="back-row">
+      <button class="btn" data-click="go('home')">← Voltar</button>
+      <button class="btn btn-danger" data-click="go('ended')">Sair</button>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">📞 Telefones Úteis</h2>
+          <p class="card-sub">Contatos de emergência e apoio, com compartilhamento individual pelo WhatsApp.</p>
+        </div>
+      </div>
+
+      <div id="tel_wrap" class="help-stack"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
        AJUDA
   ============================================================ -->
   <section id="screen-help" class="screen">
@@ -2251,14 +2279,13 @@
   <script src="js/infracoes.js"></script>
   <script src="js/pesos.js"></script>
   <script src="js/tacografo.js"></script>
+  <script src="js/telefones.js"></script>
   <script src="js/rodovias_ref.js"></script>
   <script src="js/calendarios.js"></script>
   <script src="js/croqui.js"></script>
 
 </body>
 </html>
-
-
 
 
 

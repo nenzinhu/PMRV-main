@@ -24,7 +24,7 @@ window.core_formatarKM = core_formatarKM;
 PMRV.core = (function() {
   const SCREENS = [
     'home', 'assumir', 'patrulhamento', 'infracoes', 'envolvidos', 'pmrv', 'danos',
-    'relatorio', 'pesos', 'tacografo', 'croqui', 'rodovias-ref', 'docs',
+    'relatorio', 'pesos', 'tacografo', 'croqui', 'rodovias-ref', 'docs', 'telefones',
     'guia-ciclomotores', 'guia-estrangeiros', 'prazos-transito', 'prazos-gerais',
     'guia-aet', 'guia-sinistros', 'help', 'ended', 'module-missing'
   ];
@@ -80,6 +80,7 @@ PMRV.core = (function() {
     if (target === 'patrulhamento' && typeof window.pat_init === 'function') window.pat_init();
     if (target === 'pmrv' && typeof window.pmrv_init === 'function') window.pmrv_init();
     if (target === 'infracoes' && typeof window.infra_init === 'function') window.infra_init();
+    if (target === 'telefones' && typeof window.tel_init === 'function') window.tel_init();
     if (target === 'danos' && typeof window.danPrepararTela === 'function') window.danPrepararTela();
     if (target === 'docs') docs_switchTab('bases');
   }
