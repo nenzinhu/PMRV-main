@@ -23,12 +23,6 @@ const PMRV_DINAMICAS = {
   '7.1': 'Ocorrência registrada como [OUTROS].'
 };
 
-const PMRV_OCORRENCIAS = {
-  danosMateriais: 'Sinistro de tr\u00e2nsito com danos materiais',
-  vitimas: 'Sinistro de tr\u00e2nsito com v\u00edtima(s)',
-  obito: 'Sinistro de tr\u00e2nsito com \u00f3bito'
-};
-
 function pmrv_validarVtr(input) {
   input.value = input.value.replace(/\D/g, '').substring(0, 4);
   pmrv_atualizar();
@@ -36,7 +30,7 @@ function pmrv_validarVtr(input) {
 
 function pmrv_verificarVitimas() {
   const ocorrencia = document.getElementById('pmrv_ocorrencia').value;
-  const mostrar = ocorrencia === PMRV_OCORRENCIAS.vitimas || ocorrencia === PMRV_OCORRENCIAS.obito;
+  const mostrar = ocorrencia === 'Sinistro de tr??nsito com v??tima(s)' || ocorrencia === 'Sinistro de tr??nsito com ??bito';
   document.getElementById('pmrv_box_vitimas').classList.toggle('hidden', !mostrar);
   pmrv_atualizar();
 }
@@ -101,7 +95,7 @@ function pmrv_atualizarLocal() {
   const rodovia = document.getElementById('pmrv_rodovia')?.value || '---';
   const km = pmrv_formatarKM(document.getElementById('pmrv_km')?.value);
   const campoLocal = document.getElementById('pmrv_local');
-  const textoLocal = `Rodovia ${rodovia} km ${km}`;
+  const textoLocal = `${rodovia}, km ${km}`;
   if (campoLocal) campoLocal.value = textoLocal;
   const footerLocal = document.getElementById('pmrv_local_footer');
   if (footerLocal) footerLocal.textContent = textoLocal;
@@ -143,28 +137,6 @@ function pmrv_toggleSentidoManual() {
   pmrv_atualizar();
 }
 
-const PMRV_SINISTRO_IMGS = {
-  '1.1': '1.1-atropelamento-pedestre.svg',
-  '1.2': '1.2-atropelamento-animal.svg',
-  '2.1': '2.1-abalroamento-longitudinal-mesmo-sentido.svg',
-  '2.2': '2.2-abalroamento-longitudinal-sentido-oposto.svg',
-  '2.3': '2.3-abalroamento-transversal.svg',
-  '3.1': '3.1-colisao-frontal.svg',
-  '3.2': '3.2-colisao-traseira.svg',
-  '3.3': '3.3-colisao-engavetamento.svg',
-  '4.1': '4.1-choque-poste.svg',
-  '4.6': '4.6-choque-defensa.svg',
-  '4.9': '4.9-choque-objeto.svg',
-  '5.1': '5.1-saida-pista-simples.svg',
-  '5.3': '5.3-saida-pista-capotamento.svg',
-  '5.4': '5.4-saida-pista-tombamento.svg',
-  '6.1': '6.1-saida-choque-poste.svg',
-  '6.2': '6.2-saida-choque-muro.svg',
-  '6.3': '6.3-saida-choque-defensa.svg',
-  '6.4': '6.4-saida-choque-objeto.svg',
-  '7.1': '7.1-outros.svg'
-};
-
 function pmrv_mudarSubtipo() {
   const cod     = document.getElementById('pmrv_subtipo').value;
   const objeto  = document.getElementById('pmrv_nome_objeto').value  || 'objeto fixo';
@@ -172,18 +144,6 @@ function pmrv_mudarSubtipo() {
 
   document.getElementById('pmrv_box_objeto').classList.toggle('hidden', cod !== '4.9' && cod !== '6.4');
   document.getElementById('pmrv_box_outros').classList.toggle('hidden', cod !== '7.1');
-
-  // Atualizar preview da imagem
-  const imgEl = document.getElementById('pmrv_subtipo_preview_img');
-  if (imgEl) {
-    const filename = PMRV_SINISTRO_IMGS[cod];
-    if (filename) {
-      imgEl.src = 'img/sinistros/' + filename;
-      imgEl.style.display = 'block';
-    } else {
-      imgEl.style.display = 'none';
-    }
-  }
 
   let texto = PMRV_DINAMICAS[cod] || '';
   if (cod === '4.9' || cod === '6.4') texto = texto.replace('[OBJETO]', objeto);
@@ -222,7 +182,7 @@ function pmrv_gerarTexto(negrito = false) {
   const conhc   = document.getElementById('pmrv_conhecimento').value;
   const ocorr   = document.getElementById('pmrv_ocorrencia').value;
   const dinamica= document.getElementById('pmrv_dinamica_texto').value;
-  const houveObito = ocorr === PMRV_OCORRENCIAS.obito;
+  const houveObito = ocorr === 'Sinistro de tr??nsito com ??bito';
 
   const sentido = document.getElementById('pmrv_sentido').value === 'MANUAL'
     ? document.getElementById('pmrv_sentido_manual').value
@@ -234,7 +194,7 @@ function pmrv_gerarTexto(negrito = false) {
     tipoLabel = document.getElementById('pmrv_descricao_outros').value;
 
   let infoV = '';
-  if (ocorr === PMRV_OCORRENCIAS.vitimas || houveObito) {
+  if (ocorr === 'Sinistro de tr??nsito com v??tima(s)' || houveObito) {
     const l  = Number(document.getElementById('pmrv_qtd_leve').value       || 0);
     const g  = Number(document.getElementById('pmrv_qtd_grave').value      || 0);
     const gs = Number(document.getElementById('pmrv_qtd_gravissima').value || 0);
@@ -266,7 +226,6 @@ function pmrv_gerarTexto(negrito = false) {
     `${b}Tipo de sinistro:${b} ${tipoLabel}${infoV}\n` +
     `\n` +
     `A equipe policial militar rodoviária foi acionada ${conhc} para atendimento de ocorrência de sinistro de trânsito na rodovia ${rodovia}, km ${km}, sentido ${sentido || '---'}, sendo empenhada a Viatura PM-${vtr}.\n` +
-    `${textoObito}` +
     `${dinamica}\n` +
     `\n` +
     `Foram adotadas as providências administrativas cabíveis.`
@@ -287,9 +246,9 @@ function pmrv_limpar() {
   ['pmrv_sade','pmrv_vtr','pmrv_km','pmrv_sentido_manual','pmrv_nome_objeto','pmrv_descricao_outros','pmrv_dinamica_texto']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
-  document.getElementById('pmrv_ocorrencia').value   = PMRV_OCORRENCIAS.danosMateriais;
+  document.getElementById('pmrv_ocorrencia').value   = 'Sinistro de trânsito com danos materiais';
   document.getElementById('pmrv_conhecimento').value = 'pela Central';
-  document.getElementById('pmrv_sentido').value      = 'Centro\u2013Bairro';
+  document.getElementById('pmrv_sentido').value      = 'Centro–Bairro';
   document.getElementById('pmrv_subtipo').value      = '1.1';
   document.getElementById('pmrv_hora_auto').checked  = true;
   ['pmrv_qtd_leve','pmrv_qtd_grave','pmrv_qtd_gravissima'].forEach(id => document.getElementById(id).value = 0);

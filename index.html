@@ -4,87 +4,34 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="PMRV-SC - Ferramentas operacionais da Polícia Militar Rodoviária" />
-  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="theme-color" content="#07090f" />
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <title>PMRV-SC | Operacional</title>
+  <title>PMRV-SC</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="css/inlined.css">
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <link rel="stylesheet" href="css/inlined.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 <div class="app" role="main">
 
-  <!-- MODAL IA VISION — ANÁLISE GLOBAL DE 4 LADOS -->
-  <div id="dan-ia-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width:600px;width:95%;">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">🔍 IA Vision — Análise Automática</h3>
-          <p class="modal-sub">A IA irá escanear as fotos para identificar e descrever os danos.</p>
-        </div>
-        <button class="modal-close" data-click="danIACloseModal()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="dan-ia-preview-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px;">
-          <!-- Previsão das fotos sendo analisadas -->
-        </div>
-        
-        <div id="dan-ia-loading" class="hidden" style="text-align:center;padding:30px;background:rgba(245,130,32,0.03);border-radius:12px;border:1px dashed var(--laranja);">
-          <div class="spinner" style="margin:0 auto 15px;"></div>
-          <p id="dan-ia-loading-txt" style="font-size:14px;color:var(--text);font-weight:600;">Iniciando escaneamento 360°...</p>
-          <p style="font-size:12px;color:var(--label);margin-top:5px;">Processando imagens em modo paisagem...</p>
-        </div>
-
-        <div id="dan-ia-result-wrap" class="hidden">
-          <div style="background:var(--surface);padding:15px;border-radius:12px;border:1px solid var(--border);max-height:300px;overflow-y:auto;">
-            <div style="font-size:11px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <span style="display:inline-block;width:8px;height:8px;background:var(--laranja);border-radius:50%;"></span>
-              Laudo Visual Sugerido
-            </div>
-            <div id="dan-ia-result-text" style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;"></div>
-          </div>
-          <div style="margin-top:15px;display:flex;gap:10px;">
-            <button class="btn btn-full" data-click="danIACloseModal()">Descartar</button>
-            <button class="btn btn-primary btn-full" data-click="danIAAdotarTudo()">✅ Adotar no Relatório</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOPBAR COMPACTA (EITTR PRO) -->
+  <!-- TOPBAR COMPACTA -->
   <header class="topbar" role="banner">
-    <div class="brand" data-click="go('home')">
+    <div class="brand">
       <img src="img/extracted_1.png" alt="PMRv" class="brand-logo" />
-      <div style="display:flex; flex-direction:column; line-height:1.1;">
-        <span style="font-weight: 900; font-size: 15px; letter-spacing: -0.5px;">PMRV-SC</span>
-        <div style="display:flex; gap:4px; align-items:center;">
-          <div class="brand-pill" style="padding:2px 6px; font-size:9px;">
-            <div class="brand-dot"></div>
-            <span>OFFLINE-PRO</span>
-          </div>
-          <span id="db-status" title="Dados protegidos em IndexedDB" style="font-size:10px; cursor:help;">🛡️</span>
-        </div>
-      </div>
+      <span style="font-weight: 800; font-size: 14px; letter-spacing: -0.5px;">PMRV-SC</span>
     </div>
     
-    <div class="topbar-actions" style="display: flex; gap: 8px; align-items: center;">
-      <button class="btn btn-sm" data-click="core_toggleTactical()" title="Visão Noturna Tática" style="min-height:36px; padding:0 10px;">👁️ Tático</button>
-      <button class="nav-icon-btn" data-click="go('patrulhamento')" title="Patrulhamento" style="background:none; border:none; font-size:22px; padding:4px; cursor:pointer;">🚔</button>
-      <button class="nav-icon-btn" data-click="go('docs')" title="Documentos" style="background:none; border:none; font-size:20px; padding:4px; cursor:pointer;">📄</button>
+    <div class="topbar-shortcuts" style="display: flex; gap: 14px; align-items: center;">
+      <button class="nav-icon-btn" data-click="go('patrulhamento')" title="Patrulhamento" style="background:none; border:none; font-size:22px; padding:4px; cursor:pointer; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">🚔</button>
+      <button class="nav-icon-btn" data-click="go('docs')" title="Documentos" style="background:none; border:none; font-size:20px; padding:4px; cursor:pointer; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">📄</button>
     </div>
 
-    <div id="top-gps-info" style="font-size: 10px; text-align: right; color: var(--primary); max-width: 80px;">
-      <span id="header-gps-txt" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Localizando...</span>
+    <div id="top-gps-info" style="font-size: 10px; text-align: right; color: var(--primary);">
+      <span id="header-gps-txt">Localizando...</span>
     </div>
   </header>
 
@@ -96,16 +43,10 @@
   ============================================================ -->
   <section id="screen-home" class="screen active" aria-label="Menu principal">
     <div class="card">
-      <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; gap:15px;">
-        <div style="flex:1;">
+      <div class="card-header">
+        <div>
           <h2 class="card-title">O que você precisa?</h2>
           <p class="card-sub">Escolha o módulo para começar.</p>
-        </div>
-        <!-- Dashboard de Localização em Tempo Real -->
-        <div id="home-location-dash" style="flex:0 0 140px; background:rgba(245,130,32,0.08); border:1px solid rgba(245,130,32,0.2); border-radius:12px; padding:8px 10px; text-align:right; min-height:60px; display:flex; flex-direction:column; justify-content:center;">
-          <div id="home-gps-road" style="font-size:13px; font-weight:900; color:var(--primary); line-height:1.1;">Localizando...</div>
-          <div id="home-gps-km" style="font-size:11px; font-weight:700; color:var(--text); margin-top:2px;">KM --</div>
-          <div id="home-gps-ref" style="font-size:9px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">Aguardando sinal</div>
         </div>
       </div>
 
@@ -117,22 +58,8 @@
           <span class="menu-arrow">›</span>
         </button>
 
-        <button class="menu-card" data-color="blue" data-click="go('telefones')" aria-label="Abrir Telefones Úteis">
-          <div class="menu-icon">📞</div>
-          <div class="menu-title">Telefones Úteis</div>
-          <div class="menu-desc">Emergência e Contatos Oficiais</div>
-          <span class="menu-arrow" aria-hidden="true">›</span>
-        </button>
-
-        <button class="menu-card" data-color="blue" data-click="go('patrulhamento')" aria-label="Abrir Consulta de Patrulhamento e Infrações">
-          <div class="menu-icon"><img src="patrulhamento.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-pat" /></div>
-          <div class="menu-title">Patrulhamento</div>
-          <div class="menu-desc">Registro rápido de infrações em lote</div>
-          <span class="menu-arrow" aria-hidden="true">›</span>
-        </button>
-
         <button class="menu-card" data-color="amber" data-click="go('infracoes')">
-          <div class="menu-icon"><img src="img/extracted_4.png" alt="Consulta de Infrações" class="menu-icon-img menu-icon-img-infra" /></div>
+          <div class="menu-icon"><img src="infrações.png" alt="Consulta de Infrações" class="menu-icon-img menu-icon-img-infra" /></div>
           <div class="menu-title">Consulta de Infrações</div>
           <div class="menu-desc">Pesquisar diretamente na base local do aplicativo</div>
           <span class="menu-arrow">›</span>
@@ -159,11 +86,17 @@
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
-
         <button class="menu-card" data-color="purple" data-click="go('relatorio')" aria-label="Abrir Relatório Completo de Sinistro">
           <div class="menu-icon"><img src="relatorio.png" class="menu-icon-img menu-icon-img-rel" alt="" aria-hidden="true"></div>
           <div class="menu-title">Relatório Completo</div>
           <div class="menu-desc">Envolvidos + Danos em um relatório</div>
+          <span class="menu-arrow" aria-hidden="true">›</span>
+        </button>
+
+        <button class="menu-card" data-color="blue" data-click="go('patrulhamento')" aria-label="Abrir Consulta de Patrulhamento e Infrações">
+          <div class="menu-icon"><img src="patrulhamento.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-pat" /></div>
+          <div class="menu-title">Patrulhamento</div>
+          <div class="menu-desc">Registro rápido de infrações em lote</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
@@ -182,7 +115,7 @@
         </button>
 
         <button class="menu-card" data-color="purple" data-click="go('croqui')" aria-label="Abrir Ferramenta de Croqui Técnico">
-          <div class="menu-icon"><img src="img/Croqui.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-croqui" /></div>
+          <div class="menu-icon"><img src="Croqui.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-croqui" /></div>
           <div class="menu-title">Croqui</div>
           <div class="menu-desc">Esboço técnico do local do acidente</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -195,15 +128,15 @@
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
-        <button class="menu-card" data-color="green" data-click="go('docs')" aria-label="Abrir CTB Brasileiro">
-          <div class="menu-icon"><img src="img/extracted_4.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-ctb" /></div>
-          <div class="menu-title">CTB Brasileiro</div>
-          <div class="menu-desc">Consulta rápida sobre regras, documentos e fiscalização</div>
+        <button class="menu-card" data-color="green" data-click="go('docs')" aria-label="Abrir Documentos e Instruções de Trânsito">
+          <div class="menu-icon"><img src="ctb.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-ctb" /></div>
+          <div class="menu-title">Documentos de Trânsito</div>
+          <div class="menu-desc">Instruções rápidas sobre porte, CNH e CRLV-e</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
         </button>
 
         <button class="menu-card" data-color="blue" data-click="go('help')" aria-label="Abrir Ajuda e Manual de Uso">
-          <div class="menu-icon"><img src="img/patrulha.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-help" /></div>
+          <div class="menu-icon"><img src="AJUDA.png" alt="" aria-hidden="true" class="menu-icon-img menu-icon-img-help" /></div>
           <div class="menu-title">Ajuda</div>
           <div class="menu-desc">Manual de uso de cada opção</div>
           <span class="menu-arrow" aria-hidden="true">›</span>
@@ -544,46 +477,41 @@
             </div>
             <div class="form-field">
               <label class="field-label">Tipo de Sinistro</label>
-              <div style="display:flex; gap:10px; align-items:flex-start;">
-                <select id="pmrv_subtipo" data-change="pmrv_mudarSubtipo()" style="flex:1;">
-                  <optgroup label="1. Atropelamento">
-                    <option value="1.1">1.1 – Atropelamento de Pedestre</option>
-                    <option value="1.2">1.2 – Atropelamento de Animal</option>
-                  </optgroup>
-                  <optgroup label="2. Abalroamento">
-                    <option value="2.1">2.1 – Abalroamento Longitudinal (Mesmo Sentido)</option>
-                    <option value="2.2">2.2 – Abalroamento Longitudinal (Sentido Oposto)</option>
-                    <option value="2.3">2.3 – Abalroamento Transversal</option>
-                  </optgroup>
-                  <optgroup label="3. Colisão">
-                    <option value="3.1">3.1 – Colisão Frontal</option>
-                    <option value="3.2">3.2 – Colisão Traseira</option>
-                    <option value="3.3">3.3 – Colisão Engavetamento</option>
-                  </optgroup>
-                  <optgroup label="4. Choque">
-                    <option value="4.1">4.1 – Choque em Poste</option>
-                    <option value="4.6">4.6 – Choque em Defensa</option>
-                    <option value="4.9">4.9 – Choque em Objeto (especificar)</option>
-                  </optgroup>
-                  <optgroup label="5. Saída de Pista">
-                    <option value="5.1">5.1 – Saída de Pista Simples</option>
-                    <option value="5.3">5.3 – Saída de Pista com Capotamento</option>
-                    <option value="5.4">5.4 – Saída de Pista com Tombamento</option>
-                  </optgroup>
-                  <optgroup label="6. Saída + Choque">
-                    <option value="6.1">6.1 – Saída + Choque em Poste</option>
-                    <option value="6.2">6.2 – Saída + Choque em Muro</option>
-                    <option value="6.3">6.3 – Saída + Choque em Defensa</option>
-                    <option value="6.4">6.4 – Saída + Choque em Objeto (especificar)</option>
-                  </optgroup>
-                  <optgroup label="7. Outros">
-                    <option value="7.1">7.1 – Outros (especificar)</option>
-                  </optgroup>
-                </select>
-                <div id="pmrv_subtipo_preview_wrap" style="width:80px; height:60px; background:var(--surface); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; cursor:zoom-in;" data-click="core_zoomImage(document.getElementById('pmrv_subtipo_preview_img').src)">
-                  <img id="pmrv_subtipo_preview_img" src="" alt="Preview" style="max-width:90%; max-height:90%; display:none; filter: invert(1) brightness(2);">
-                </div>
-              </div>
+              <select id="pmrv_subtipo" data-change="pmrv_mudarSubtipo()">
+                <optgroup label="1. Atropelamento">
+                  <option value="1.1">1.1 – Atropelamento de Pedestre</option>
+                  <option value="1.2">1.2 – Atropelamento de Animal</option>
+                </optgroup>
+                <optgroup label="2. Abalroamento">
+                  <option value="2.1">2.1 – Abalroamento Longitudinal (Mesmo Sentido)</option>
+                  <option value="2.2">2.2 – Abalroamento Longitudinal (Sentido Oposto)</option>
+                  <option value="2.3">2.3 – Abalroamento Transversal</option>
+                </optgroup>
+                <optgroup label="3. Colisão">
+                  <option value="3.1">3.1 – Colisão Frontal</option>
+                  <option value="3.2">3.2 – Colisão Traseira</option>
+                  <option value="3.3">3.3 – Colisão Engavetamento</option>
+                </optgroup>
+                <optgroup label="4. Choque">
+                  <option value="4.1">4.1 – Choque em Poste</option>
+                  <option value="4.6">4.6 – Choque em Defensa</option>
+                  <option value="4.9">4.9 – Choque em Objeto (especificar)</option>
+                </optgroup>
+                <optgroup label="5. Saída de Pista">
+                  <option value="5.1">5.1 – Saída de Pista Simples</option>
+                  <option value="5.3">5.3 – Saída de Pista com Capotamento</option>
+                  <option value="5.4">5.4 – Saída de Pista com Tombamento</option>
+                </optgroup>
+                <optgroup label="6. Saída + Choque">
+                  <option value="6.1">6.1 – Saída + Choque em Poste</option>
+                  <option value="6.2">6.2 – Saída + Choque em Muro</option>
+                  <option value="6.3">6.3 – Saída + Choque em Defensa</option>
+                  <option value="6.4">6.4 – Saída + Choque em Objeto (especificar)</option>
+                </optgroup>
+                <optgroup label="7. Outros">
+                  <option value="7.1">7.1 – Outros (especificar)</option>
+                </optgroup>
+              </select>
             </div>
           </div>
 
@@ -662,36 +590,15 @@
     <!-- STEP 1: escolher veículo -->
     <div class="card" id="dan-step-vehicle">
       <h2 class="card-title">Selecione o tipo de veículo</h2>
-      <p class="card-sub" style="margin-bottom:14px;">Toque no veículo envolvido no sinistro ou use a IA Vision</p>
-      
-      <!-- Botão IA Vision de Destaque -->
-      <div style="margin-bottom:20px;">
-        <label class="btn btn-primary btn-full btn-lg" style="background:linear-gradient(135deg, var(--laranja), #ff7e5f); border:none; box-shadow:0 4px 15px rgba(245,130,32,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
-          <span style="font-size:24px;">🔍</span>
-          <div style="text-align:left;">
-            <div style="font-size:14px; font-weight:900; letter-spacing:0.5px;">IA VISION — SCAN 360°</div>
-            <div style="font-size:10px; font-weight:600; opacity:0.9;">Identificação automática de danos via foto</div>
-          </div>
-          <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="danIAProcessarFoto(this)">
-        </label>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+      <p class="card-sub" style="margin-bottom:14px;">Toque no veículo envolvido no sinistro</p>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
         <button class="dan-veh-btn" id="dan-btn-carro" data-click="danEscolherVeiculo('carro')">
-          <img src="img/extracted_6.png" alt="Carro" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;" data-click-stop="core_zoomImage(this.src)">
+          <img src="img/extracted_6.png" alt="Carro" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;">
           <span style="font-family:var(--font-display);font-size:18px;font-weight:900;">Carro</span>
         </button>
         <button class="dan-veh-btn" id="dan-btn-moto" data-click="danEscolherVeiculo('moto')">
-          <img src="img/extracted_7.png" alt="Motocicleta" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;" data-click-stop="core_zoomImage(this.src)">
+          <img src="img/extracted_7.png" alt="Motocicleta" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;">
           <span style="font-family:var(--font-display);font-size:18px;font-weight:900;">Motocicleta</span>
-        </button>
-        <button class="dan-veh-btn" id="dan-btn-caminhao" data-click="danEscolherVeiculo('caminhao')">
-          <img src="cfrontal.png" alt="Caminhão" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;" data-click-stop="core_zoomImage(this.src)">
-          <span style="font-family:var(--font-display);font-size:18px;font-weight:900;">Caminhão</span>
-        </button>
-        <button class="dan-veh-btn" id="dan-btn-onibus" data-click="danEscolherVeiculo('onibus')">
-          <img src="ofrontal.png" alt="Ônibus" style="height:80px;width:auto;object-fit:contain;margin-bottom:6px;display:block;" data-click-stop="core_zoomImage(this.src)">
-          <span style="font-family:var(--font-display);font-size:18px;font-weight:900;">Ônibus</span>
         </button>
       </div>
       <div id="dan-salvos-area" style="display:none;margin-top:16px;">
@@ -738,34 +645,12 @@
           </button>
           <button class="dan-tab" id="dan-tab-esquerda" data-click="danMudarVista('esquerda')">
             <img class="dan-tab-thumb" src="carro_esquerda_nobg.png" alt="Esquerda">
-            Esq.
+            Lateral esquerda
           </button>
           <button class="dan-tab" id="dan-tab-direita"  data-click="danMudarVista('direita')">
             <img class="dan-tab-thumb" src="carro_direita_nobg.png" alt="Direita">
-            Dir.
+            Lateral direita
           </button>
-        </div>
-
-        <!-- Vistoria por Foto Real (EITTR) -->
-        <div style="margin-bottom:12px; padding:10px; background:rgba(245,130,32,0.1); border:1px solid var(--primary); border-radius:12px;">
-          <div style="font-size:11px; font-weight:bold; color:var(--primary); margin-bottom:8px; text-transform:uppercase;">📸 Vistoria por Foto Real (Assistida)</div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <label class="btn btn-sm" style="cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">
-              📷 Tirar Foto desta Vista
-              <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="danCarregarFotoReal(this)">
-            </label>
-            <button class="btn btn-sm" data-click="danResetarFotoReal()" id="dan-btn-reset-foto" style="display:none;">🖼️ Voltar p/ Diagrama</button>
-          </div>
-        </div>
-
-        <div id="dan-part-list-area" class="dan-part-list-card" style="display:none;">
-          <div class="dan-part-list-head">
-            <div>
-              <div class="dan-part-list-title">Lista numerada da vista</div>
-              <div class="dan-part-list-sub" id="dan-part-list-sub">Clique em uma peça para registrar o dano e depois salve o veículo.</div>
-            </div>
-          </div>
-          <div id="dan-part-list"></div>
         </div>
 
         <!-- SVG area -->
@@ -773,10 +658,6 @@
         <div id="dan-part-readout" style="margin-top:8px;padding:10px 12px;border:1px dashed var(--border);border-radius:12px;background:rgba(245,130,32,.06);font-size:13px;color:var(--text);font-weight:700;min-height:42px;display:flex;align-items:center;">Passe ou toque em um círculo para ver o nome da peça.</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px;">
           <p style="font-size:11px;color:var(--label);margin:0;" id="dan-hint-txt">Toque num círculo → escolha o tipo de dano</p>
-          <div class="dan-actions-inline">
-            <button class="btn btn-sm" id="dan-move-toggle" data-click="danAlternarModoMover()" style="display:none;">Mover círculos</button>
-            <button class="btn btn-sm btn-success" id="dan-save-points" data-click="danSalvarLocalizacaoCirculos()" style="display:none;">Salvar localização</button>
-          </div>
         </div>
       </div>
 
@@ -835,19 +716,19 @@
 
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
           <button class="dan-tab active" id="v360-tab-frente"   data-click="v360switchTab(this,'frente')">
-            <img class="dan-tab-thumb" src="img/extracted_8.png" id="dan-thumb-frente" alt="Frente" data-click-stop="core_zoomImage(this.src)">
+            <img class="dan-tab-thumb" src="" id="dan-thumb-frente" alt="Frente">
             Frente
           </button>
           <button class="dan-tab" id="v360-tab-tras" data-click="v360switchTab(this,'tras')">
-            <img class="dan-tab-thumb" src="img/extracted_9.png" id="dan-thumb-tras" alt="Traseira" data-click-stop="core_zoomImage(this.src)">
+            <img class="dan-tab-thumb" src="" id="dan-thumb-tras" alt="Traseira">
             Traseira
           </button>
           <button class="dan-tab" id="v360-tab-direita" data-click="v360switchTab(this,'direita')">
-            <img class="dan-tab-thumb" src="img/extracted_10.png" id="dan-thumb-direita" alt="Direita" data-click-stop="core_zoomImage(this.src)">
+            <img class="dan-tab-thumb" src="" id="dan-thumb-direita" alt="Direita">
             Lateral direita
           </button>
           <button class="dan-tab" id="v360-tab-esquerda" data-click="v360switchTab(this,'esquerda')">
-            <img class="dan-tab-thumb" src="img/extracted_11.png" id="dan-thumb-esquerda" alt="Esquerda" data-click-stop="core_zoomImage(this.src)">
+            <img class="dan-tab-thumb" src="" id="dan-thumb-esquerda" alt="Esquerda">
             Lateral esquerda
           </button>
         </div>
@@ -983,12 +864,8 @@
 
     <div class="card infra-page">
       <div class="infra-hero">
-        <img src="img/extracted_4.png" alt="" class="infra-hero-icon-bg" style="position:absolute; right:-20px; top:-20px; width:150px; opacity:0.1; transform:rotate(15deg); pointer-events:none;">
         <div class="infra-hero-copy">
-          <h2 class="card-title infra-title card-title-with-icon">
-            <img src="img/extracted_4.png" alt="" class="card-title-icon" aria-hidden="true">
-            Consulta de Infrações
-          </h2>
+          <h2 class="card-title infra-title">Consulta de Infrações</h2>
           <p class="card-sub infra-sub">Pesquisa direta na base local com filtros por texto, categoria e medida administrativa, sem abrir outra página.</p>
         </div>
       </div>
@@ -1137,6 +1014,14 @@
 
       <div class="form-grid">
         <div class="form-field">
+          <label class="field-label">Modo de cadastro</label>
+          <div class="flex gap-8 flex-wrap">
+            <button type="button" class="btn btn-primary" id="btn-pat-cadastro-individual" data-click="pat_setModoCadastro('individual')">Registro individual</button>
+            <button type="button" class="btn" id="btn-pat-cadastro-lote" data-click="pat_setModoCadastro('lote')">Cadastro por lote</button>
+          </div>
+        </div>
+
+        <div class="form-field">
           <label class="field-label">Modo de leitura da placa</label>
           <div class="flex gap-8 flex-wrap">
             <button type="button" class="btn btn-primary" id="btn-pat-placa-manual" data-click="pat_setModoPlaca('manual')">⌨️ Manual</button>
@@ -1149,19 +1034,8 @@
           <div class="flex gap-8">
             <input type="text" id="pat_placa" maxlength="7" placeholder="ABC1D23" data-input="pat_formatarPlaca(this)" style="flex:1;">
             <button type="button" class="btn btn-sm" id="btn-pat-placa-voz" data-click="pat_iniciarVozPlaca()">🎙️ Voz</button>
-            <button type="button" class="btn btn-sm" id="btn-pat-placa-lote" data-click="pat_iniciarVozLotePlacas()">🎙️ Lote</button>
           </div>
           <div id="pat_placa_tipo" style="margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:#999;padding:7px 10px;border-radius:999px;display:inline-block;">DIGITANDO...</div>
-        </div>
-
-        <div id="pat_lote_box" class="form-field hidden">
-          <label class="field-label">Placas por lote</label>
-          <div id="pat_lote_status" style="font-size:12px;color:var(--label);margin-bottom:8px;">Diga "placa" e os 7 caracteres. Diga "terminou" para encerrar. Maximo: 20 placas.</div>
-          <div id="pat_lote_lista" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-          <div class="result-actions" style="margin-top:10px;">
-            <button type="button" class="btn btn-primary" data-click="pat_salvarLotePlacas()">+ Adicionar lote</button>
-            <button type="button" class="btn btn-danger" data-click="pat_limparLotePlacas()">🗑 Limpar lote</button>
-          </div>
         </div>
 
         <div id="pat_placa_ocr_wrap" class="form-field hidden">
@@ -1204,23 +1078,11 @@
           <div class="form-row form-row-2">
             <div class="form-field">
               <select id="pat_manual_rodovia">
-                <option value="">-- Selecione --</option>
-                <option value="SC-401">SC-401</option>
-                <option value="SC-402">SC-402</option>
-                <option value="SC-403">SC-403</option>
-                <option value="SC-404">SC-404</option>
-                <option value="SC-405">SC-405</option>
-                <option value="SC-406">SC-406</option>
-                <option value="SC-407">SC-407</option>
-                <option value="SC-281">SC-281</option>
-                <option value="SC-408">SC-408</option>
-                <option value="SC-410">SC-410</option>
-                <option value="SC-411">SC-411</option>
-                <option value="SC-435">SC-435</option>
+                <option value="">-- Selecione a Rodovia --</option>
               </select>
             </div>
             <div class="form-field">
-              <input type="text" id="pat_manual_km" placeholder="00,000" maxlength="6" inputmode="decimal" onblur="core_formatarKM(this)" onkeydown="if(event.key==='Enter')core_formatarKM(this)">
+              <input type="text" id="pat_manual_km" placeholder="KM 0.000" onblur="core_formatarKM(this)">
             </div>
           </div>
         </div>
@@ -1280,7 +1142,24 @@
           <textarea id="pat_obs" rows="3" placeholder="Anote detalhes úteis para o relatório."></textarea>
         </div>
 
-        <button class="btn btn-primary btn-full btn-lg" data-click="pat_salvarVeiculo()">+ Adicionar registro</button>
+        <div id="pat_individual_actions">
+          <button class="btn btn-primary btn-full btn-lg" data-click="pat_salvarVeiculo()">+ Adicionar registro</button>
+        </div>
+
+        <div id="pat_lote_box" class="sub-box hidden">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--label);margin-bottom:8px;">Lote compartilhado</div>
+          <p class="help-text" style="margin:0 0 12px;">Use a mesma rodovia, o mesmo KM e a mesma infração para até 20 veículos. Cada nova placa recebe +15 segundos no horário.</p>
+          <div class="flex gap-8 flex-wrap" style="margin-bottom:10px;">
+            <button type="button" class="btn" data-click="pat_adicionarPlacaAtualAoLote()">+ Incluir placa atual</button>
+            <button type="button" class="btn btn-danger" data-click="pat_limparPlacasLote()">Limpar placas do lote</button>
+          </div>
+          <div class="form-field" style="margin-bottom:0;">
+            <label class="field-label">Placas do lote</label>
+            <textarea id="pat_lote_placas" rows="6" placeholder="Uma placa por linha&#10;ABC1D23&#10;DEF4G56" data-input="pat_atualizarResumoLote()"></textarea>
+            <div id="pat_lote_resumo" style="margin-top:8px;font-size:12px;font-weight:700;color:var(--label);">0/20 placas no lote.</div>
+          </div>
+          <button class="btn btn-primary btn-full btn-lg" style="margin-top:14px;" data-click="pat_salvarLote()">+ Criar lote</button>
+        </div>
       </div>
 
       <div id="pat_lista_card" class="result-box hidden" style="margin-top:20px;">
@@ -1329,7 +1208,6 @@
       <div class="flex gap-8 flex-wrap" style="margin-bottom:14px;">
         <button class="btn btn-primary" id="tab-pes-pbt" data-click="pes_switchTab('pbt')">PBT</button>
         <button class="btn" id="tab-pes-dim" data-click="pes_switchTab('dim')">Dimensões</button>
-        <button class="btn" id="tab-pes-img" data-click="pes_switchTab('img')">Imagens</button>
       </div>
 
       <div id="pes-content-pbt">
@@ -1444,130 +1322,6 @@
             <div id="dim_alerta_titulo" style="font-weight:900;font-size:16px;"></div>
             <div id="dim_alerta_desc" style="font-size:12px;margin-top:4px;"></div>
           </div>
-        </div>
-      </div>
-
-      <div id="pes-content-img" class="hidden">
-        <div class="sub-box" style="margin-bottom:12px;">
-          <div class="result-label">Guia visual por tipo</div>
-          <div style="font-size:12px;color:var(--label);">Referência rápida do tipo de caminhão e quantidade de eixos para apoio no enquadramento de peso.</div>
-        </div>
-
-        <div class="pes-axle-grid">
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Toco</strong>
-              <span class="pes-axle-tag">2 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <svg viewBox="0 0 260 90" aria-label="Caminhão toco, dois eixos">
-                <rect x="14" y="34" width="156" height="28" rx="6" fill="#f58220"/>
-                <rect x="172" y="38" width="56" height="24" rx="4" fill="#f59e0b"/>
-                <rect x="186" y="42" width="18" height="10" rx="2" fill="#0f172a"/>
-                <circle cx="64" cy="72" r="10" fill="#1f2937"/><circle cx="64" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="146" cy="72" r="10" fill="#1f2937"/><circle cx="146" cy="72" r="4" fill="#9ca3af"/>
-              </svg>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Truck</strong>
-              <span class="pes-axle-tag">3 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <svg viewBox="0 0 260 90" aria-label="Caminhão truck, três eixos">
-                <rect x="14" y="34" width="156" height="28" rx="6" fill="#f58220"/>
-                <rect x="172" y="38" width="56" height="24" rx="4" fill="#f59e0b"/>
-                <rect x="186" y="42" width="18" height="10" rx="2" fill="#0f172a"/>
-                <circle cx="58" cy="72" r="10" fill="#1f2937"/><circle cx="58" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="132" cy="72" r="10" fill="#1f2937"/><circle cx="132" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="156" cy="72" r="10" fill="#1f2937"/><circle cx="156" cy="72" r="4" fill="#9ca3af"/>
-              </svg>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Bitruck</strong>
-              <span class="pes-axle-tag">4 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <svg viewBox="0 0 260 90" aria-label="Caminhão bitruck, quatro eixos">
-                <rect x="14" y="34" width="156" height="28" rx="6" fill="#f58220"/>
-                <rect x="172" y="38" width="56" height="24" rx="4" fill="#f59e0b"/>
-                <rect x="186" y="42" width="18" height="10" rx="2" fill="#0f172a"/>
-                <circle cx="50" cy="72" r="10" fill="#1f2937"/><circle cx="50" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="114" cy="72" r="10" fill="#1f2937"/><circle cx="114" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="138" cy="72" r="10" fill="#1f2937"/><circle cx="138" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="162" cy="72" r="10" fill="#1f2937"/><circle cx="162" cy="72" r="4" fill="#9ca3af"/>
-              </svg>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Cavalo + Semirreboque</strong>
-              <span class="pes-axle-tag">5 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <svg viewBox="0 0 260 90" aria-label="Cavalo mais semirreboque, cinco eixos">
-                <rect x="20" y="38" width="58" height="24" rx="4" fill="#f59e0b"/>
-                <rect x="80" y="34" width="136" height="28" rx="6" fill="#f58220"/>
-                <rect x="198" y="30" width="40" height="8" rx="2" fill="#f59e0b"/>
-                <circle cx="40" cy="72" r="10" fill="#1f2937"/><circle cx="40" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="66" cy="72" r="10" fill="#1f2937"/><circle cx="66" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="124" cy="72" r="10" fill="#1f2937"/><circle cx="124" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="156" cy="72" r="10" fill="#1f2937"/><circle cx="156" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="188" cy="72" r="10" fill="#1f2937"/><circle cx="188" cy="72" r="4" fill="#9ca3af"/>
-              </svg>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Bitrem</strong>
-              <span class="pes-axle-tag">7 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <svg viewBox="0 0 260 90" aria-label="Bitrem, sete eixos">
-                <rect x="14" y="40" width="44" height="22" rx="4" fill="#f59e0b"/>
-                <rect x="62" y="34" width="70" height="28" rx="6" fill="#f58220"/>
-                <rect x="140" y="34" width="100" height="28" rx="6" fill="#fb923c"/>
-                <circle cx="30" cy="72" r="9" fill="#1f2937"/><circle cx="30" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="52" cy="72" r="9" fill="#1f2937"/><circle cx="52" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="84" cy="72" r="9" fill="#1f2937"/><circle cx="84" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="112" cy="72" r="9" fill="#1f2937"/><circle cx="112" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="162" cy="72" r="9" fill="#1f2937"/><circle cx="162" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="190" cy="72" r="9" fill="#1f2937"/><circle cx="190" cy="72" r="4" fill="#9ca3af"/>
-                <circle cx="218" cy="72" r="9" fill="#1f2937"/><circle cx="218" cy="72" r="4" fill="#9ca3af"/>
-              </svg>
-            </div>
-          </article>
-
-          <article class="pes-axle-card">
-            <div class="pes-axle-head">
-              <strong>Rodotrem</strong>
-              <span class="pes-axle-tag">9 eixos</span>
-            </div>
-            <div class="pes-axle-media">
-              <svg viewBox="0 0 260 90" aria-label="Rodotrem, nove eixos">
-                <rect x="10" y="42" width="42" height="20" rx="4" fill="#f59e0b"/>
-                <rect x="56" y="34" width="58" height="28" rx="6" fill="#f58220"/>
-                <rect x="118" y="34" width="58" height="28" rx="6" fill="#fb923c"/>
-                <rect x="180" y="34" width="64" height="28" rx="6" fill="#fdba74"/>
-                <circle cx="24" cy="72" r="8" fill="#1f2937"/><circle cx="24" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="44" cy="72" r="8" fill="#1f2937"/><circle cx="44" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="72" cy="72" r="8" fill="#1f2937"/><circle cx="72" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="92" cy="72" r="8" fill="#1f2937"/><circle cx="92" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="132" cy="72" r="8" fill="#1f2937"/><circle cx="132" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="152" cy="72" r="8" fill="#1f2937"/><circle cx="152" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="188" cy="72" r="8" fill="#1f2937"/><circle cx="188" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="208" cy="72" r="8" fill="#1f2937"/><circle cx="208" cy="72" r="3" fill="#9ca3af"/>
-                <circle cx="228" cy="72" r="8" fill="#1f2937"/><circle cx="228" cy="72" r="3" fill="#9ca3af"/>
-              </svg>
-            </div>
-          </article>
         </div>
       </div>
 
@@ -1708,30 +1462,33 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title card-title-with-icon">
-            <img src="img/Croqui.png" alt="" class="card-title-icon" aria-hidden="true">
-            Croqui Dinâmico
-          </h2>
+          <h2 class="card-title">🗺️ Croqui Dinâmico</h2>
           <p class="card-sub">Monte o cenário, arraste elementos e exporte a imagem final.</p>
         </div>
       </div>
 
       <div class="flex gap-8 flex-wrap" style="margin-bottom:12px;">
         <button class="btn btn-sm" data-click="croqui_adicionarVia('reta')">Via reta</button>
-        <button class="btn btn-sm" data-click="croqui_adicionarVia('curva')">Curva</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('pista-2-faixas')">Pista 2 faixas</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('pista-3-faixas')">Pista 3 faixas</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('ponte-4-faixas')">Ponte 4 faixas</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('curva-aberta-esquerda')">Curva aberta esquerda</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('curva-aberta-direita')">Curva aberta direita</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('curva-acentuada-esquerda')">Curva acentuada esquerda</button>
+        <button class="btn btn-sm" data-click="croqui_adicionarVia('curva-acentuada-direita')">Curva acentuada direita</button>
         <button class="btn btn-sm" data-click="croqui_adicionarVia('cruzamento')">Cruzamento</button>
+        <button class="btn btn-sm" data-click="croqui_inserirTextoTitulo()">+ Título</button>
         <button class="btn btn-sm btn-primary" data-click="croqui_abrirModalIcones()">+ Ícones</button>
       </div>
 
-      <div class="flex gap-8 flex-wrap" style="margin-bottom:12px; align-items: center;">
-        <button class="btn btn-sm btn-primary" data-click="croqui_setModo('objeto')" id="croqui-btn-objeto">🖐 Mover Objetos</button>
-        <button class="btn btn-sm" data-click="croqui_setModo('pincel')" id="croqui-btn-pincel">🖌 Pincel Frenagem</button>
-        <button class="btn btn-sm" data-click="croqui_setModo('borracha')" id="croqui-btn-borracha">🧹 Borracha</button>
-        <div style="width:1px; height:20px; background:var(--border); margin:0 4px;"></div>
+      <div class="flex gap-8 flex-wrap" style="margin-bottom:12px;">
         <button class="btn btn-sm" data-click="croqui_girar()">↻ Girar</button>
         <button class="btn btn-sm" data-click="croqui_escala(0.1)">＋ Escala</button>
         <button class="btn btn-sm" data-click="croqui_escala(-0.1)">－ Escala</button>
         <button class="btn btn-sm" data-click="croqui_espelhar()">⇋ Espelhar</button>
+        <button class="btn btn-sm" data-click="croqui_editarTextoSelecionado()">✎ Editar texto</button>
+        <button class="btn btn-sm" data-click="croqui_camada('frente')">⬆ Frente</button>
+        <button class="btn btn-sm" data-click="croqui_camada('tras')">⬇ Fundo</button>
       </div>
 
       <div class="flex gap-8 flex-wrap" style="margin-bottom:12px;">
@@ -1741,91 +1498,18 @@
         <button class="btn btn-sm" data-click="croqui_aplicarModelo('saida')">Modelo saída</button>
       </div>
 
-      <div style="background:#1a1f2d;border:1px solid var(--border);border-radius:14px;overflow:hidden; position:relative; width:100%; max-width:560px; margin:0 auto;" id="croqui-container">
-        <svg id="croqui-svg" viewBox="0 0 420 320" style="width:100%;height:auto;display:block;background:#222; position:relative; z-index:1;">
+      <div style="background:#1a1f2d;border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+        <svg id="croqui-svg" viewBox="0 0 420 320" style="width:100%;height:auto;display:block;background:#222;">
           <rect x="0" y="0" width="420" height="320" fill="#222"></rect>
           <g id="croqui-vias"></g>
           <g id="croqui-objetos"></g>
         </svg>
-        <canvas id="croqui-canvas" width="840" height="640" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none;"></canvas>
       </div>
 
       <div class="result-actions" style="margin-top:16px;">
         <button class="btn btn-danger" data-click="croqui_limpar()">🗑 Limpar</button>
         <button class="btn btn-success" data-click="croqui_exportar()">💾 Salvar PNG</button>
         <button class="btn btn-whats" data-click="croqui_whatsapp()">📲 Dica WhatsApp</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       REFERÊNCIAS PRÓXIMAS (TOMTOM)
-  ============================================================ -->
-  <section id="screen-referencias-proximas" class="screen">
-    <div class="back-row">
-      <button class="btn" data-click="go('home')">← Voltar</button>
-      <button class="btn btn-danger" data-click="go('ended')">Sair</button>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <h2 class="card-title">📍 Referências Próximas</h2>
-          <p class="card-sub">Busca de POIs ao longo da rodovia via TomTom.</p>
-        </div>
-      </div>
-
-      <div class="form-grid">
-        <div class="form-field">
-          <label class="field-label">Rodovia</label>
-          <div style="display:flex; gap:8px;">
-            <select id="ref_prox_rodovia" style="flex:1;" data-change="ref_prox_atualizarReferenciaPrincipal()">
-              <option value="">-- Selecione --</option>
-            </select>
-            <button class="btn btn-sm" id="btn-gps-localizar-ref-prox" data-click="gps_obterLocalizacao()">📍 GPS</button>
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label class="field-label">KM Inicial (Opcional)</label>
-          <input type="text" id="ref_prox_km" placeholder="0.000" inputmode="decimal" onblur="core_formatarKM(this); ref_prox_atualizarReferenciaPrincipal()">
-          <small style="color:var(--muted); font-size:10px;">Se vazio, busca em toda a rodovia.</small>
-        </div>
-        
-        <div class="form-field">
-          <label class="field-label">Categorias</label>
-          <div class="flex gap-8 flex-wrap" id="ref_prox_categorias">
-            <button class="btn btn-sm btn-primary" data-cat-id="7311" data-click="ref_prox_toggleCat(this, '7311')">⛽ Posto</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="7322" data-click="ref_prox_toggleCat(this, '7322')">🚑 SAMU</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="7324" data-click="ref_prox_toggleCat(this, '7324')">🚒 Bombeiro</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="7323" data-click="ref_prox_toggleCat(this, '7323')">👮 Policia</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="9113" data-click="ref_prox_toggleCat(this, '9113')">🛠️ Borracharia</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="9361009" data-click="ref_prox_toggleCat(this, '9361009')">🛒 Conveniência</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="7321" data-click="ref_prox_toggleCat(this, '7321')">🏥 Saúde</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="7326" data-click="ref_prox_toggleCat(this, '7326')">💊 Farmácia</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="7315" data-click="ref_prox_toggleCat(this, '7315')">🍽️ Restaurante</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="9361" data-click="ref_prox_toggleCat(this, '9361')">🛍️ Loja</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="bank" data-click="ref_prox_toggleCat(this, 'bank')">🏦 Banco</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="icecream" data-click="ref_prox_toggleCat(this, 'icecream')">🍦 Sorveteria</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="restroom" data-click="ref_prox_toggleCat(this, 'restroom')">🚻 Banheiro</button>
-            <button class="btn btn-sm btn-primary" data-cat-id="condo" data-click="ref_prox_toggleCat(this, 'condo')">🏢 Condomínio</button>
-          </div>
-          <div class="flex items-center gap-8 mt-12">
-            <label class="switch">
-              <input type="checkbox" id="ref_prox_offroad" onchange="ref_prox_toggleOffroad(this)">
-              <span class="slider round"></span>
-            </label>
-            <span style="font-size:12px; color:var(--text); font-weight:600;">Incluir Referências Off-Road (até 100m fora da rodovia)</span>
-          </div>
-        </div>
-        </div>
-
-        <button class="btn btn-primary btn-full btn-lg" id="btn-ref-prox-buscar" data-click="ref_prox_buscar()">🔍 Buscar ao longo da rota</button>
-      </div>
-
-      <div id="ref_prox_status" style="margin-top:12px; font-size:12px; color:var(--label); text-align:center;"></div>
-
-      <div id="ref_prox_results" style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
-        <!-- Resultados TomTom aqui -->
       </div>
     </div>
   </section>
@@ -1847,10 +1531,10 @@
       </div>
 
       <div class="form-grid">
-        <div class="form-field">
-          <label class="field-label">Rodovia</label>
-          <div style="display:flex; gap:8px;">
-            <select id="ref_rodovia" style="flex:1;">
+        <div class="form-row form-row-2">
+          <div class="form-field">
+            <label class="field-label">Rodovia</label>
+            <select id="ref_rodovia">
               <option value="SC-401">SC-401</option>
               <option value="SC-403">SC-403</option>
               <option value="SC-405">SC-405</option>
@@ -1858,12 +1542,11 @@
               <option value="SC-281">SC-281</option>
               <option value="SC-407">SC-407</option>
             </select>
-            <button class="btn btn-sm" id="btn-gps-localizar-ref" data-click="gps_obterLocalizacao()">📍 GPS</button>
           </div>
-        </div>
-        <div class="form-field">
-          <label class="field-label">KM</label>
-          <input type="text" id="ref_km" placeholder="0.000" inputmode="decimal" onblur="core_formatarKM(this)">
+          <div class="form-field">
+            <label class="field-label">KM</label>
+            <input type="text" id="ref_km" placeholder="0.000">
+          </div>
         </div>
         <button class="btn btn-primary btn-full" data-click="ref_localizar()">🔎 Localizar referência</button>
       </div>
@@ -1894,63 +1577,101 @@
       <div class="card-header">
         <div>
           <h2 class="card-title card-title-with-icon"><img src="prazos.png" alt="" class="card-title-icon" aria-hidden="true">Prazos de Licenciamento</h2>
-          <p class="card-sub">Calendário nacional por UF e final de placa.</p>
+          <p class="card-sub">Calendário nacional por UF e consulta da origem da placa.</p>
         </div>
       </div>
 
-      <div class="form-field">
-        <label class="field-label">UF</label>
-        <select id="prazos_uf_select" data-change="prazos_carregarCalendario()">
-          <option value="SC">SC</option>
-          <option value="SP">SP</option>
-          <option value="PR">PR</option>
-          <option value="RS">RS</option>
-          <option value="RJ">RJ</option>
-          <option value="MG">MG</option>
-          <option value="ES">ES</option>
-          <option value="BA">BA</option>
-          <option value="PE">PE</option>
-          <option value="CE">CE</option>
-          <option value="DF">DF</option>
-          <option value="GO">GO</option>
-          <option value="MT">MT</option>
-          <option value="MS">MS</option>
-          <option value="PA">PA</option>
-          <option value="AM">AM</option>
-          <option value="AC">AC</option>
-          <option value="AL">AL</option>
-          <option value="AP">AP</option>
-          <option value="MA">MA</option>
-          <option value="PB">PB</option>
-          <option value="PI">PI</option>
-          <option value="RN">RN</option>
-          <option value="RO">RO</option>
-          <option value="RR">RR</option>
-          <option value="SE">SE</option>
-          <option value="TO">TO</option>
-        </select>
+      <div class="flex gap-8 flex-wrap" style="margin-bottom:14px;">
+        <button class="btn btn-primary" id="tab-prazos-licenciamento" data-click="prazos_switchTab('licenciamento')">Licenciamento</button>
+        <button class="btn" id="tab-prazos-origem" data-click="prazos_switchTab('origem')">UF de origem por placa</button>
       </div>
 
-      <div class="sub-box">
-        <div id="prazos_uf_titulo" style="font-weight:900;font-size:18px;"></div>
-        <div id="prazos_obs_uf" style="margin-top:6px;color:var(--label);font-size:12px;"></div>
-        <div id="prazos_status_uf" style="margin-top:8px;font-size:12px;font-weight:700;"></div>
-        <div id="prazos_fonte_uf" style="margin-top:6px;font-size:12px;"></div>
-        <table style="width:100%;margin-top:14px;border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th style="padding:10px;border:1px solid var(--border);">Final</th>
-              <th style="padding:10px;border:1px solid var(--border);">Prazo</th>
-            </tr>
-          </thead>
-          <tbody id="prazos_tabela_body"></tbody>
-        </table>
+      <div id="prazos-content-licenciamento">
+        <div class="form-field">
+          <label class="field-label">UF</label>
+          <select id="prazos_uf_select" data-change="prazos_carregarCalendario()">
+            <option value="SC">SC</option>
+            <option value="SP">SP</option>
+            <option value="PR">PR</option>
+            <option value="RS">RS</option>
+            <option value="RJ">RJ</option>
+            <option value="MG">MG</option>
+            <option value="ES">ES</option>
+            <option value="BA">BA</option>
+            <option value="PE">PE</option>
+            <option value="CE">CE</option>
+            <option value="DF">DF</option>
+            <option value="GO">GO</option>
+            <option value="MT">MT</option>
+            <option value="MS">MS</option>
+            <option value="PA">PA</option>
+            <option value="AM">AM</option>
+            <option value="AC">AC</option>
+            <option value="AL">AL</option>
+            <option value="AP">AP</option>
+            <option value="MA">MA</option>
+            <option value="PB">PB</option>
+            <option value="PI">PI</option>
+            <option value="RN">RN</option>
+            <option value="RO">RO</option>
+            <option value="RR">RR</option>
+            <option value="SE">SE</option>
+            <option value="TO">TO</option>
+          </select>
+        </div>
+
+        <div class="sub-box">
+          <div id="prazos_uf_titulo" style="font-weight:900;font-size:18px;"></div>
+          <div id="prazos_obs_uf" style="margin-top:6px;color:var(--label);font-size:12px;"></div>
+          <div id="prazos_status_uf" style="margin-top:8px;font-size:12px;font-weight:700;"></div>
+          <div id="prazos_fonte_uf" style="margin-top:6px;font-size:12px;"></div>
+          <table style="width:100%;margin-top:14px;border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="padding:10px;border:1px solid var(--border);">Final</th>
+                <th style="padding:10px;border:1px solid var(--border);">Prazo</th>
+              </tr>
+            </thead>
+            <tbody id="prazos_tabela_body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="prazos-content-origem" class="hidden">
+        <div class="form-field">
+          <label class="field-label">Placa</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input
+              type="text"
+              id="uf_origem_placa_input"
+              placeholder="ABC1D23"
+              maxlength="7"
+              style="flex:1;"
+              data-input="ufOrigem_formatarInput(this)"
+              data-keydown-enter="ufOrigem_consultar()">
+            <button type="button" class="btn btn-primary" id="uf_origem_consultar_btn" data-click="ufOrigem_consultar()" disabled>Consultar</button>
+          </div>
+          <p class="help-text" style="margin-top:8px;">Informe a placa completa ou apenas as três letras iniciais.</p>
+        </div>
+
+        <div class="sub-box" style="margin-top:14px;">
+          <div id="uf_origem_status" style="font-size:12px;font-weight:700;color:var(--label);">Digite uma placa para consultar a UF de origem.</div>
+          <div id="uf_origem_resultado" class="hidden" style="margin-top:12px;padding:14px;border-radius:12px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.18);">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--label);">Resultado</div>
+            <div id="uf_origem_resultado_estado" style="margin-top:6px;font-size:20px;font-weight:900;color:var(--primary);"></div>
+            <div id="uf_origem_resultado_faixa" style="margin-top:4px;font-size:12px;color:var(--label);"></div>
+          </div>
+          <div id="uf_origem_historico_wrap" class="hidden" style="margin-top:14px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--label);margin-bottom:8px;">Últimas consultas</div>
+            <div id="uf_origem_historico" style="display:grid;gap:8px;"></div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ============================================================
-       CTB BRASILEIRO
+       DOCUMENTOS DE TRÂNSITO
   ============================================================ -->
   <section id="screen-docs" class="screen">
     <div class="back-row">
@@ -1960,11 +1681,8 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title card-title-with-icon">
-            <img src="img/extracted_4.png" alt="" class="card-title-icon" aria-hidden="true">
-            CTB Brasileiro
-          </h2>
-          <p class="card-sub">Consulta rápida sobre regras, documentos, ciclomotores e exigências operacionais.</p>
+          <h2 class="card-title">📄 Documentos de Trânsito</h2>
+          <p class="card-sub">Consulta rápida sobre ciclomotores, fiscalização e exigências operacionais.</p>
         </div>
       </div>
 
@@ -1973,7 +1691,6 @@
         <button class="btn" id="tab-docs-ciclomotores" data-click="docs_switchTab('ciclomotores')">Ciclomotores</button>
         <button class="btn" id="tab-docs-estrangeiros" data-click="docs_switchTab('estrangeiros')">Estrangeiros</button>
         <button class="btn" id="tab-docs-aet" data-click="docs_switchTab('aet')">Fiscalização de AET</button>
-        <button class="btn" id="tab-docs-pops" data-click="docs_switchTab('pops')">POPS</button>
       </div>
 
       <div id="docs-content-bases">
@@ -2114,36 +1831,6 @@
         </div>
       </div>
 
-      <div id="docs-content-pops" class="hidden">
-        <div class="help-stack">
-          <section class="help-block" style="border:1px solid rgba(239, 68, 68, 0.22);background:linear-gradient(180deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04));">
-            <h3 class="help-title">POP: Homicídio Culposo na Direção (Art. 302 CTB)</h3>
-            <p class="help-text">Procedimento Operacional Padrão para atendimento de sinistros com óbito constatado.</p>
-          </section>
-
-          <section class="help-block">
-            <h3 class="help-title">Protocolo de Atendimento</h3>
-            <ul class="help-list">
-              <li><strong>1. Isolamento do Local:</strong> Imediata preservação da cena do crime/sinistro. Não movimentar veículos ou vestígios até a chegada da Perícia (Científica).</li>
-              <li><strong>2. Acionamentos:</strong> Central (PMRv/COPOM) para acionamento do IML e Polícia Científica.</li>
-              <li><strong>3. Identificação:</strong> Qualificação completa do condutor, vítima(s) e testemunhas presenciais (mínimo 2, se possível).</li>
-              <li><strong>4. Teste de Alcoolemia:</strong> Obrigatório realizar o teste de etilômetro no condutor sobrevivente (Art. 306 e 277 CTB).</li>
-              <li><strong>5. Documentação:</strong> Verificação de CNH e CRLV. Se houver crime de trânsito (embriaguez, racha, etc.), condução à DP.</li>
-              <li><strong>6. Registro SADE:</strong> Preenchimento detalhado do Boletim de Ocorrência (PMRv/SADE), anexando fotos de todos os ângulos.</li>
-            </ul>
-          </section>
-
-          <section class="help-block">
-            <h3 class="help-title">Observações Importantes</h3>
-            <ul class="help-list">
-              <li><strong>Causas de Aumento:</strong> Se o condutor não possui CNH, em faixa de pedestre/calçada ou deixou de prestar socorro (Art. 302, § 1º).</li>
-              <li><strong>Influência de Álcool:</strong> Se o condutor estiver sob influência de álcool ou substância psicoativa, a pena é de reclusão de 5 a 8 anos (Art. 302, § 3º).</li>
-              <li><strong>Objetos Pessoais:</strong> Arrolar e entregar pertences da vítima à Polícia Civil ou familiares mediante recibo.</li>
-            </ul>
-          </section>
-        </div>
-      </div>
-
       <div id="docs-content-estrangeiros" class="hidden">
         <div class="help-stack">
           <section class="help-block" style="border:1px solid rgba(59,130,246,.22);background:linear-gradient(180deg, rgba(59,130,246,.12), rgba(59,130,246,.04));">
@@ -2248,13 +1935,6 @@
        AJUDA
   ============================================================ -->
   <section id="screen-help" class="screen">
-    <!-- ... conteúdo da ajuda ... -->
-  </section>
-
-  <!-- ============================================================
-       TELEFONES ÚTEIS
-  ============================================================ -->
-  <section id="screen-telefones" class="screen">
     <div class="back-row">
       <button class="btn" data-click="go('home')">← Voltar</button>
       <button class="btn btn-danger" data-click="go('ended')">Sair</button>
@@ -2262,87 +1942,98 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <h2 class="card-title">📞 Telefones Úteis</h2>
-          <p class="card-sub">Discagem rápida para emergências e suporte.</p>
+          <h2 class="card-title card-title-with-icon"><img src="AJUDA.png" alt="" class="card-title-icon" aria-hidden="true">Ajuda</h2>
+          <p class="card-sub">Resumo prático de como usar cada módulo do aplicativo.</p>
         </div>
       </div>
 
       <div class="help-stack">
-        <section class="help-block" style="border-left: 4px solid #e74c3c;">
-          <h3 class="help-title" style="color:#e74c3c;">🚨 Emergências</h3>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-            <a href="tel:198" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>198</b><br><small>PMRv (Estadual)</small></a>
-            <a href="tel:191" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>191</b><br><small>PRF (Federal)</small></a>
-            <a href="tel:190" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>190</b><br><small>PM (Urbana)</small></a>
-            <a href="tel:193" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>193</b><br><small>Bombeiros</small></a>
-            <a href="tel:192" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>192</b><br><small>SAMU</small></a>
-            <a href="tel:181" class="btn btn-danger" style="text-decoration:none; text-align:center;"><b>181</b><br><small>Polícia Civil (Denúncia)</small></a>
-          </div>
-        </section>
-
-        <section class="help-block" style="border-left: 4px solid #16a34a;">
-          <h3 class="help-title" style="color:#16a34a;">🧭 Polícia Civil e Polícia Científica</h3>
-          <ul class="help-list" style="margin-top:10px;">
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Polícia Civil SC - Disque Denúncia</span>
-              <a href="tel:181" class="btn btn-sm btn-primary">181</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Delegacia Geral da Polícia Civil</span>
-              <a href="tel:04836658488" class="btn btn-sm btn-primary">Ligar</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Polícia Científica / IGP - Medicina Legal (Florianópolis)</span>
-              <a href="tel:04836659342" class="btn btn-sm btn-primary">Ligar</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
-              <span>Polícia Científica / IGP - Criminalística (Florianópolis)</span>
-              <a href="tel:04836659357" class="btn btn-sm btn-primary">Ligar</a>
-            </li>
-          </ul>
-        </section>
-
-        <section class="help-block" style="border-left: 4px solid var(--primary);">
-          <h3 class="help-title" style="color:var(--primary);">🚔 Unidades PMRv (Grande Floripa)</h3>
-          <ul class="help-list" style="margin-top:10px;">
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Posto 19 (PMRv - Floripa)</span>
-              <a href="tel:04836655000" class="btn btn-sm btn-primary">Ligar</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>1º BPMRv (Comando)</span>
-              <a href="tel:04836654900" class="btn btn-sm btn-primary">Ligar</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Posto 1 (Palhoça)</span>
-              <a href="tel:04836654900" class="btn btn-sm btn-primary">Ligar</a>
-            </li>
+        <section class="help-block">
+          <h3 class="help-title">Iniciando o Serviço</h3>
+          <p class="help-text">Gera o texto de início de serviço da guarnição.</p>
+          <ul class="help-list">
+            <li>Escolha a viatura ou use a opção manual.</li>
+            <li>Selecione a escala e os policiais.</li>
+            <li>Confirme a viatura e, ao final, gere o texto.</li>
+            <li>Use copiar ou WhatsApp para enviar.</li>
           </ul>
         </section>
 
         <section class="help-block">
-          <h3 class="help-title">🛠️ Suporte e Rodovias</h3>
-          <ul class="help-list" style="margin-top:10px;">
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Defesa Civil</span>
-              <a href="tel:199" class="btn btn-sm">199</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Túnel Antonieta de Barros / SIE</span>
-              <a href="tel:04836649100" class="btn btn-sm">Ligar</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-              <span>Arteris (Litoral Sul)</span>
-              <a href="tel:08007251771" class="btn btn-sm">Ligar</a>
-            </li>
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
-              <span>Detran/SC</span>
-              <a href="tel:154" class="btn btn-sm">154</a>
-            </li>
+          <h3 class="help-title">Relato de Envolvidos</h3>
+          <p class="help-text">Registra pessoas, veículos, relatos e fotos.</p>
+          <ul class="help-list">
+            <li>Adicione um envolvido por vez.</li>
+            <li>Preencha nome, contato, veículo, local e relato.</li>
+            <li>Anexe as fotos do envolvido no próprio card.</li>
+            <li>No fim, copie o texto ou envie por WhatsApp.</li>
           </ul>
-          <div style="margin-top:10px; font-size:12px; color:var(--label); line-height:1.5;">
-            Para ocorrências no Túnel Antonieta de Barros, use apoio operacional da PMRv/PM e contato administrativo da SIE.
-          </div>
+        </section>
+
+        <section class="help-block">
+          <h3 class="help-title">Relato Policial</h3>
+          <p class="help-text">Monta o texto padronizado da ocorrência.</p>
+          <ul class="help-list">
+            <li>Preencha SADE, viatura, rodovia, cidade, km e horário.</li>
+            <li>Defina ocorrência, conhecimento, sentido e subtipo.</li>
+            <li>Se houver vítimas, informe as quantidades.</li>
+            <li>O texto é atualizado automaticamente na tela.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h3 class="help-title">Danos Aparentes</h3>
+          <p class="help-text">Permite registrar avarias de carro e motocicleta com apoio visual.</p>
+          <ul class="help-list">
+            <li>Escolha carro ou motocicleta.</li>
+            <li>Toque na peça/ponto desejado.</li>
+            <li>Selecione o tipo de dano.</li>
+            <li>Salve o veículo e gere o relatório individual ou geral.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h3 class="help-title">Relatório Completo</h3>
+          <p class="help-text">Consolida envolvidos e danos em um único relatório.</p>
+          <ul class="help-list">
+            <li>Gere o relatório completo com base no que foi preenchido antes.</li>
+            <li>Baixe o texto em `.txt` se necessário.</li>
+            <li>Compartilhe só as fotos dos envolvidos e do local.</li>
+            <li>Você pode anexar até 2 fotos do local nesta tela.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h3 class="help-title">Consulta de Infrações</h3>
+          <p class="help-text">Permite pesquisar rapidamente na base local de infrações.</p>
+          <ul class="help-list">
+            <li>Use a busca geral para localizar por código, descrição, artigo ou infrator.</li>
+            <li>Refine o resultado pelos filtros de categoria e medida administrativa.</li>
+            <li>A aba Consulta mostra os resultados completos da base carregada.</li>
+            <li>Ao tocar em uma infração frequente, a pesquisa é aplicada automaticamente.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h3 class="help-title">Infrações Frequente</h3>
+          <p class="help-text">Reúne os códigos mais usados para acesso rápido.</p>
+          <ul class="help-list">
+            <li>Toque no card da infração desejada para abrir a consulta com o código preenchido.</li>
+            <li>Os códigos aparecem destacados para facilitar a identificação visual.</li>
+            <li>Depois do toque, a tela volta para a aba de consulta com o filtro aplicado.</li>
+            <li>Use essa aba quando já souber a infração mais comum que deseja localizar.</li>
+          </ul>
+        </section>
+
+        <section class="help-block">
+          <h3 class="help-title">Fluxo Recomendado</h3>
+          <ul class="help-list">
+            <li>1. Iniciando o Serviço</li>
+            <li>2. Relato de Envolvidos</li>
+            <li>3. Relato Policial</li>
+            <li>4. Danos Aparentes</li>
+            <li>5. Relatório Completo</li>
+          </ul>
         </section>
       </div>
     </div>
@@ -2417,14 +2108,6 @@
 
 </div><!-- /.app -->
 
-<!-- Modal Global de Zoom para Imagens -->
-<div id="core-zoom-modal" class="modal-overlay" data-click="core_fecharZoomOnBackdrop(event)" role="dialog" aria-modal="true">
-  <div class="modal-content zoom-content">
-    <button class="btn btn-danger btn-sm zoom-close" data-click="core_fecharZoom()">✕</button>
-    <img id="core-zoom-img" src="" alt="Imagem ampliada">
-  </div>
-</div>
-
 <div id="dan-hover-tooltip" aria-hidden="true"></div>
 
 <!-- Modal fora do app para garantir z-index correto -->
@@ -2496,124 +2179,59 @@
       <button class="btn" data-click="croqui_filtrarIcones('frequentes')">⭐ Frequentes</button>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;" id="croqui-icons-grid">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
       <!-- Frequentes -->
-      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirPistaSvg('waldermar viera SC-.svg')">
-        <span class="icon-emoji">🛣️</span>
-        <span class="icon-label">Pista W. Vieira</span>
-      </button>
-      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirSvg('pedestre.svg', true)">
-        <img src="pedestre.svg" alt="">
-        <span class="icon-label">Pedestre (SVG)</span>
-      </button>
-      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirIcone('viatura')">
-        <span class="icon-emoji">🚓</span>
-        <span class="icon-label">Viatura PMRv</span>
-      </button>
-      <button class="btn croqui-icon-btn frequentes hidden" data-click="croqui_inserirIcone('v1')">
-        <span class="icon-emoji">🚗</span>
-        <span class="icon-label">Veículo 1 (V1)</span>
-      </button>
-      
-      <!-- Veículos -->
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('v1')">
-        <span class="icon-emoji">🚗</span>
-        <span class="icon-label">Veículo 1</span>
-      </button>
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('v2')">
-        <span class="icon-emoji">🚘</span>
-        <span class="icon-label">Veículo 2</span>
-      </button>
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('moto')">
-        <span class="icon-emoji">🏍️</span>
-        <span class="icon-label">Moto</span>
-      </button>
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('caminhao')">
-        <span class="icon-emoji">🚚</span>
-        <span class="icon-label">Caminhão</span>
-      </button>
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('carreta')">
-        <span class="icon-emoji">🚛</span>
-        <span class="icon-label">Carreta</span>
-      </button>
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('onibus')">
-        <span class="icon-emoji">🚌</span>
-        <span class="icon-label">Ônibus</span>
-      </button>
-      <button class="btn croqui-icon-btn veiculo" data-click="croqui_inserirIcone('viatura')">
-        <span class="icon-emoji">🚓</span>
-        <span class="icon-label">Viatura</span>
-      </button>
+      <button class="btn croqui-icon-item frequentes hidden" data-click="croqui_inserirPistaSvg('waldermar viera SC-.svg')">🛣️ Pista W. Vieira</button>
+      <button class="btn croqui-icon-item frequentes hidden" data-click="croqui_inserirSvg('pedestre.svg', true)">🚶 Pedestre (SVG)</button>
+      <button class="btn croqui-icon-item frequentes hidden" data-click="croqui_inserirIcone('viatura')">🚓 Viatura PMRv</button>
+      <button class="btn croqui-icon-item frequentes hidden" data-click="croqui_inserirIcone('v1')">🚗 Veículo 1 (V1)</button>
+      <button class="btn croqui-icon-item frequentes hidden" data-click="croqui_inserirIcone('v2')">🚘 Veículo 2 (V2)</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('v2')">🚘 Veículo 2</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('moto')">🏍️ Moto</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('caminhao')">🚚 Caminhão</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('carreta')">🚛 Carreta</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('onibus')">🚌 Ônibus</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('bicicleta')">🚲 Bicicleta</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('viatura')">🚓 Viatura</button>
+      <button class="btn croqui-icon-item veiculo" data-click="croqui_inserirIcone('ambulancia')">🚑 Ambulância</button>
 
       <!-- Sinalização -->
-      <button class="btn croqui-icon-btn objeto hidden" data-click="croqui_inserirIcone('pare')">
-        <span class="icon-emoji">🛑</span>
-        <span class="icon-label">Pare</span>
-      </button>
-      <button class="btn croqui-icon-btn objeto hidden" data-click="croqui_inserirIcone('semaforo')">
-        <span class="icon-emoji">🚦</span>
-        <span class="icon-label">Semáforo</span>
-      </button>
-      <button class="btn croqui-icon-btn objeto hidden" data-click="croqui_inserirIcone('cone')">
-        <span class="icon-emoji">⚠️</span>
-        <span class="icon-label">Cone</span>
-      </button>
+      <button class="btn croqui-icon-item objeto hidden" data-click="croqui_inserirIcone('pare')">🛑 Pare</button>
+      <button class="btn croqui-icon-item objeto hidden" data-click="croqui_inserirIcone('preferencial')">🔻 Preferencial</button>
+      <button class="btn croqui-icon-item objeto hidden" data-click="croqui_inserirIcone('semaforo')">🚦 Semáforo</button>
+      <button class="btn croqui-icon-item objeto hidden" data-click="croqui_inserirIcone('cone')">⚠️ Cone</button>
+      <button class="btn croqui-icon-item objeto hidden" data-click="croqui_inserirIcone('norte')">🧭 Norte</button>
+      <button class="btn croqui-icon-item objeto hidden" data-click="croqui_inserirIcone('frenagem')">⬛ Frenagem</button>
 
       <!-- Obstáculos -->
-      <button class="btn croqui-icon-btn obstaculo hidden" data-click="croqui_inserirSvg('pedestre.svg', true)">
-        <img src="pedestre.svg" alt="">
-        <span class="icon-label">Pedestre (SVG)</span>
-      </button>
-      <button class="btn croqui-icon-btn obstaculo hidden" data-click="croqui_inserirIcone('poste')">
-        <span class="icon-emoji">💡</span>
-        <span class="icon-label">Poste</span>
-      </button>
-      <button class="btn croqui-icon-btn obstaculo hidden" data-click="croqui_inserirIcone('arvore')">
-        <span class="icon-emoji">🌳</span>
-        <span class="icon-label">Árvore</span>
-      </button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirSvg('pedestre.svg', true)">🚶 Pedestre (SVG)</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('poste')">💡 Poste</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('arvore')">🌳 Árvore</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('buraco')">🕳️ Defeito na Via</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('animal_via')">🐄 Animal</button>
 
       <!-- Sinistros (SVG) -->
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('3.1-colisao-frontal.svg')">
-        <img src="img/sinistros/3.1-colisao-frontal.svg" alt="">
-        <span class="icon-label">Colisão Frontal</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('3.2-colisao-traseira.svg')">
-        <img src="img/sinistros/3.2-colisao-traseira.svg" alt="">
-        <span class="icon-label">Colisão Traseira</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('3.3-colisao-engavetamento.svg')">
-        <img src="img/sinistros/3.3-colisao-engavetamento.svg" alt="">
-        <span class="icon-label">Engavetamento</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('2.3-abalroamento-transversal.svg')">
-        <img src="img/sinistros/2.3-abalroamento-transversal.svg" alt="">
-        <span class="icon-label">Transversal</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('5.3-saida-pista-capotamento.svg')">
-        <img src="img/sinistros/5.3-saida-pista-capotamento.svg" alt="">
-        <span class="icon-label">Capotamento</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('5.4-saida-pista-tombamento.svg')">
-        <img src="img/sinistros/5.4-saida-pista-tombamento.svg" alt="">
-        <span class="icon-label">Tombamento</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('1.1-atropelamento-pedestre.svg')">
-        <img src="img/sinistros/1.1-atropelamento-pedestre.svg" alt="">
-        <span class="icon-label">Atrop. Pedestre</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('1.2-atropelamento-animal.svg')">
-        <img src="img/sinistros/1.2-atropelamento-animal.svg" alt="">
-        <span class="icon-label">Atrop. Animal</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('4.1-choque-poste.svg')">
-        <img src="img/sinistros/4.1-choque-poste.svg" alt="">
-        <span class="icon-label">Choque Poste</span>
-      </button>
-      <button class="btn croqui-icon-btn sinistro hidden" data-click="croqui_inserirSvg('4.6-choque-defensa.svg')">
-        <img src="img/sinistros/4.6-choque-defensa.svg" alt="">
-        <span class="icon-label">Choque Defensa</span>
-      </button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('3.1-colisao-frontal.svg')">💥 Colisão Frontal</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('3.2-colisao-traseira.svg')">💥 Colisão Traseira</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('3.3-colisao-engavetamento.svg')">💥 Engavetamento</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('2.3-abalroamento-transversal.svg')">💥 Transversal</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('5.3-saida-pista-capotamento.svg')">🔄 Capotamento</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('5.4-saida-pista-tombamento.svg')">📐 Tombamento</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('1.1-atropelamento-pedestre.svg')">🚶 Atrop. Pedestre</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('1.2-atropelamento-animal.svg')">🐎 Atrop. Animal</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('4.1-choque-poste.svg')">💡 Choque Poste</button>
+      <button class="btn croqui-icon-item sinistro hidden" data-click="croqui_inserirSvg('4.6-choque-defensa.svg')">🚧 Choque Defensa</button>
+      
+      <!-- Outros Elementos -->
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('pedestre')">🚶 Pedestre</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('idoso')">👨‍🦳 Idoso</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('crianca')">🧒 Criança</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('cadeirante')">👨‍🦽 Cadeirante</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('oleo')">🛢️ Óleo na Pista</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('buraco')">🕳️ Defeito na Via</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('vtr_emergencia')">🚨 VTR Emergência</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('sem_verde')">🟢 Semáforo Verde</button>
+      <button class="btn croqui-icon-item obstaculo hidden" data-click="croqui_inserirIcone('sem_vermelho')">🔴 Semáforo Vermelho</button>
     </div>
   </div>
 </div>
@@ -2627,28 +2245,15 @@
   <script src="js/envolvidos.js"></script>
   <script src="js/gps.js"></script>
   <script src="js/pmrv.js"></script>
-  <script src="js/patrulhamento-store.js"></script>
-  <script src="js/patrulhamento-report.js"></script>
-  <script src="js/patrulhamento-render.js"></script>
   <script src="js/patrulhamento.js"></script>
-  <script src="js/danos-state.js"></script>
-  <script src="js/danos-report.js"></script>
-  <script src="js/danos-render.js"></script>
-  <script src="data/danos_diagramas.js"></script>
   <script src="js/danos.js"></script>
-  <script src="js/danos-ia.js"></script>
   <script src="js/relatorio.js"></script>
   <script src="js/infracoes.js"></script>
   <script src="js/pesos.js"></script>
   <script src="js/tacografo.js"></script>
   <script src="js/rodovias_ref.js"></script>
-  <script src="data/referencias_grande_florianopolis_150m.js"></script>
   <script src="js/calendarios.js"></script>
   <script src="js/croqui.js"></script>
-  <script src="js/referencias-proximas.js"></script>
-  <script src="data/referencias_pois_tomtom.js"></script>
-  <script src="data/referencias_grande_florianopolis_200m.js"></script>
-  <script src="data/referencias_grande_florianopolis_100m.js"></script>
 
 </body>
 </html>

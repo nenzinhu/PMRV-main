@@ -1,13 +1,1 @@
-# Chave de API TomTom - nunca versionar
-Api.txt
-
-# Ambientes virtuais Python
-.venv/
-__pycache__/
-
-# Cache do Aider
-.aider.tags.cache.v4/
-
-# Arquivos de sistema
-.DS_Store
-Thumbs.db
+.aider*

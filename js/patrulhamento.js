@@ -3,12 +3,14 @@
  * Registro rapido de infracoes em lote com persistencia local.
  */
 
+let PAT_VEICULOS = [];
 let patRelogioHandle = null;
 let PAT_SPEECH_RECOGNITION = null;
-const PAT_GPS_STATUS_LABEL = 'Sintonizando...';
-const PAT_LOTE_MAX_PLACAS = 20;
-let PAT_LOTE_PLACAS = [];
-let PAT_LOTE_SEEN = new Set();
+let PAT_AUDIO_STREAM = null;
+let PAT_AUDIO_CONTEXT = null;
+let PAT_AUDIO_SOURCE = null;
+let PAT_AUDIO_FILTER = null;
+let PAT_MODO_CADASTRO = 'individual';
 
 const PAT_QUICK_INFRACOES = {
   '518-51': { nome: 'Cinto - Condutor sem cinto', codigo: '518-51', gravidade: 'Grave', artigo: 'Art. 167' },
@@ -31,39 +33,37 @@ const PAT_QUICK_INFRACOES = {
 };
 
 const PAT_VOICE_TOKEN_MAP = {
-  // Letras - Pronúncias e Alfabeto Fonético (Português/NATO)
-  a: 'A', ah: 'A', abe: 'A', alfa: 'A', amor: 'A', abelha: 'A', ave: 'A',
-  be: 'B', b: 'B', bi: 'B', bravo: 'B', bola: 'B', banana: 'B', ba: 'B',
-  ce: 'C', c: 'C', ci: 'C', charlie: 'C', casa: 'C', cavalo: 'C', ca: 'C',
-  de: 'D', d: 'D', di: 'D', delta: 'D', dado: 'D', dedo: 'D', da: 'D',
-  e: 'E', echo: 'E', escola: 'E', elefante: 'E', eva: 'E',
-  efe: 'F', f: 'F', foxtrot: 'F', faca: 'F', fogo: 'F', fe: 'F',
-  ge: 'G', g: 'G', gue: 'G', golf: 'G', gato: 'G', gelo: 'G',
-  aga: 'H', ha: 'H', h: 'H', hotel: 'H', hipopotamo: 'H', hoje: 'H',
-  i: 'I', ih: 'I', india: 'I', igreja: 'I', ilha: 'I',
-  jota: 'J', j: 'J', juliet: 'J', jacare: 'J', jogo: 'J',
-  ka: 'K', k: 'K', kilo: 'K', kiwi: 'K',
-  ele: 'L', l: 'L', el: 'L', lima: 'L', leite: 'L', lua: 'L',
-  eme: 'M', m: 'M', mike: 'M', macaco: 'M', macado: 'M', maria: 'M', mapa: 'M',
-  ene: 'N', n: 'N', november: 'N', navio: 'N', nuvem: 'N', nada: 'N',
-  o: 'O', oh: 'O', oscar: 'O', ovo: 'O', olho: 'O',
-  pe: 'P', p: 'P', papa: 'P', pato: 'P', pipa: 'P', para: 'P',
-  que: 'Q', q: 'Q', quebec: 'Q', queijo: 'Q', quero: 'Q',
-  erre: 'R', r: 'R', romeo: 'R', rato: 'R', rosa: 'R',
-  esse: 'S', s: 'S', sierra: 'S', sapo: 'S', sol: 'S',
-  te: 'T', t: 'T', ti: 'T', tango: 'T', tatu: 'T', tomate: 'T',
-  u: 'U', uniform: 'U', uva: 'U', urso: 'U', uniao: 'U',
-  ve: 'V', v: 'V', victor: 'V', vaca: 'V', vela: 'V', vida: 'V',
-  dobleve: 'W', dabliu: 'W', w: 'W', whiskey: 'W',
-  xis: 'X', x: 'X', xray: 'X', xadrez: 'X', xicara: 'X',
-  ipsilon: 'Y', ypsilon: 'Y', y: 'Y', yankee: 'Y',
-  ze: 'Z', z: 'Z', zulu: 'Z', zebra: 'Z',
-  // Números
+  a: 'A', ah: 'A',
+  be: 'B', b: 'B',
+  ce: 'C', c: 'C',
+  de: 'D', d: 'D',
+  e: 'E',
+  efe: 'F', f: 'F',
+  ge: 'G', g: 'G',
+  aga: 'H', ha: 'H', h: 'H',
+  i: 'I',
+  jota: 'J', j: 'J',
+  ka: 'K', ca: 'K', k: 'K',
+  ele: 'L', l: 'L',
+  eme: 'M', m: 'M',
+  ene: 'N', n: 'N',
+  o: 'O',
+  pe: 'P', p: 'P',
+  que: 'Q', q: 'Q',
+  erre: 'R', r: 'R',
+  esse: 'S', s: 'S',
+  te: 'T', t: 'T',
+  u: 'U',
+  ve: 'V', v: 'V',
+  dobleve: 'W', dabliu: 'W', w: 'W',
+  xis: 'X', x: 'X',
+  ipsilon: 'Y', ypsilon: 'Y', y: 'Y',
+  ze: 'Z', z: 'Z',
   zero: '0',
   um: '1', uma: '1',
   dois: '2',
   tres: '3',
-  quatro: '4', for: '4',
+  quatro: '4',
   cinco: '5',
   seis: '6', meia: '6',
   sete: '7',
@@ -71,12 +71,13 @@ const PAT_VOICE_TOKEN_MAP = {
   nove: '9'
 };
 
-const PAT_VOICE_IGNORE_TOKENS = new Set([
-  'placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'nÃºmero',
-  'nova', 'novo', 'tipo', 'formato'
+const PAT_VOICE_STOPWORDS = new Set([
+  'placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'letras',
+  'numero', 'numeros', 'caractere', 'caracteres', 'iniciar', 'inicio',
+  'transcrever', 'texto', 'captar', 'voz'
 ]);
 
-const PAT_VOICE_CONNECTORS = new Set(['de', 'da', 'do']);
+const PAT_LOTE_MAXIMO = 20;
 
 function pat_escapeHtml(value) {
   return String(value || '')
@@ -87,35 +88,28 @@ function pat_escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function pat_getStore() {
-  return PMRV.patrulhamentoStore;
-}
-
-function pat_getReport() {
-  return PMRV.patrulhamentoReport;
-}
-
-function pat_getRender() {
-  return PMRV.patrulhamentoRender;
-}
-
-function pat_getVeiculos() {
-  return pat_getStore()?.getAll?.() || [];
-}
-
 function pat_init() {
   pat_carregarCache();
   pat_atualizarDataHora();
+  pat_setModoCadastro(PAT_MODO_CADASTRO);
+  pat_atualizarResumoLote();
   if (!patRelogioHandle) {
     patRelogioHandle = setInterval(pat_atualizarDataHora, 30000);
   }
 }
 
 function pat_carregarCache() {
-  const veiculos = pat_getStore()?.load?.() || [];
-  pat_renderizarLista();
-  if (veiculos.length > 0) {
-    pat_setBoxVisible('pat_lista_card', true);
+  const salvo = localStorage.getItem('pmrv_pat_lote');
+  if (!salvo) return;
+
+  try {
+    PAT_VEICULOS = JSON.parse(salvo);
+    pat_renderizarLista();
+    if (PAT_VEICULOS.length > 0) {
+      pat_setBoxVisible('pat_lista_card', true);
+    }
+  } catch (e) {
+    console.error('Erro ao carregar cache de patrulhamento', e);
   }
 }
 
@@ -124,6 +118,14 @@ function pat_setBoxVisible(id, visible) {
   if (!element) return;
   element.classList.toggle('hidden', !visible);
   element.classList.toggle('visible', visible);
+}
+
+function pat_setModoCadastro(modo) {
+  PAT_MODO_CADASTRO = modo === 'lote' ? 'lote' : 'individual';
+  document.getElementById('btn-pat-cadastro-individual')?.classList.toggle('btn-primary', PAT_MODO_CADASTRO === 'individual');
+  document.getElementById('btn-pat-cadastro-lote')?.classList.toggle('btn-primary', PAT_MODO_CADASTRO === 'lote');
+  document.getElementById('pat_individual_actions')?.classList.toggle('hidden', PAT_MODO_CADASTRO !== 'individual');
+  document.getElementById('pat_lote_box')?.classList.toggle('hidden', PAT_MODO_CADASTRO !== 'lote');
 }
 
 function pat_resetFormulario() {
@@ -146,13 +148,16 @@ function pat_resetFormulario() {
   if (infraData) infraData.value = '';
   if (manualNome) manualNome.value = '';
   if (manualCodigo) manualCodigo.value = '';
-  pat_limparLotePlacas();
 
   document.getElementById('pat_infra_manual_box')?.classList.add('hidden');
   document.getElementById('pat_quick_cinto_box')?.classList.add('hidden');
   document.getElementById('pat_quick_celular_box')?.classList.add('hidden');
   document.querySelectorAll('.infra-quick-card').forEach(c => c.classList.remove('active'));
   pat_atualizarDataHora();
+}
+
+function pat_salvarCache() {
+  localStorage.setItem('pmrv_pat_lote', JSON.stringify(PAT_VEICULOS));
 }
 
 async function pat_simularOCR(input) {
@@ -230,12 +235,57 @@ function pat_setBotaoVoz(state, text) {
   btn.textContent = text;
 }
 
-function pat_setBotaoLote(state, text) {
-  const btn = document.getElementById('btn-pat-placa-lote');
-  if (!btn) return;
+async function pat_prepararAudioVoz() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return false;
+  }
 
-  btn.disabled = state === 'loading';
-  btn.textContent = text;
+  pat_liberarAudioVoz();
+
+  try {
+    PAT_AUDIO_STREAM = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 16000
+      }
+    });
+
+    PAT_AUDIO_CONTEXT = new (window.AudioContext || window.webkitAudioContext)();
+    PAT_AUDIO_SOURCE = PAT_AUDIO_CONTEXT.createMediaStreamSource(PAT_AUDIO_STREAM);
+    PAT_AUDIO_FILTER = PAT_AUDIO_CONTEXT.createBiquadFilter();
+    PAT_AUDIO_FILTER.type = 'highpass';
+    PAT_AUDIO_FILTER.frequency.value = 100;
+    PAT_AUDIO_FILTER.Q.value = 0.7;
+    PAT_AUDIO_SOURCE.connect(PAT_AUDIO_FILTER);
+    return true;
+  } catch (error) {
+    console.warn('Falha ao preparar audio com high-pass:', error);
+    pat_liberarAudioVoz();
+    return false;
+  }
+}
+
+function pat_liberarAudioVoz() {
+  if (PAT_AUDIO_SOURCE) {
+    try { PAT_AUDIO_SOURCE.disconnect(); } catch (error) { console.warn(error); }
+  }
+  if (PAT_AUDIO_FILTER) {
+    try { PAT_AUDIO_FILTER.disconnect(); } catch (error) { console.warn(error); }
+  }
+  if (PAT_AUDIO_STREAM) {
+    PAT_AUDIO_STREAM.getTracks().forEach(track => track.stop());
+  }
+  if (PAT_AUDIO_CONTEXT) {
+    PAT_AUDIO_CONTEXT.close().catch(() => {});
+  }
+
+  PAT_AUDIO_STREAM = null;
+  PAT_AUDIO_CONTEXT = null;
+  PAT_AUDIO_SOURCE = null;
+  PAT_AUDIO_FILTER = null;
 }
 
 function pat_normalizarTextoVoz(texto) {
@@ -254,35 +304,28 @@ function pat_converterFalaEmPlaca(texto) {
 
   const tokens = normalizado
     .split(' ')
-    .filter(token => token && !PAT_VOICE_IGNORE_TOKENS.has(token));
+    .filter(token => token && !['placa', 'mercosul', 'brasil', 'antiga', 'modelo', 'letra', 'numero', 'número'].includes(token));
 
   let convertido = '';
 
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-    const char = pat_tokenParaChar(token);
-    if (!char) continue;
-
-    // Lógica para evitar duplicidade fonética (ex: "M de macaco" ou "M macaco")
-    // Se o próximo token (ou o após o conector) resultar no mesmo caractere, nós o pulamos.
-    let skipCount = 0;
-    if (i + 1 < tokens.length) {
-      const nextToken = tokens[i + 1];
-      if (PAT_VOICE_CONNECTORS.has(nextToken)) {
-        if (i + 2 < tokens.length && pat_tokenParaChar(tokens[i + 2]) === char) {
-          skipCount = 2; // Pula o conector e a palavra fonética
-        }
-      } else if (pat_tokenParaChar(nextToken) === char && (token.length > 1 || nextToken.length > 1)) {
-        // Se não houver conector, mas um dos tokens for uma palavra longa (fonética), pula o segundo.
-        // Ex: "M macaco" ou "macaco M" -> resulta em apenas um M.
-        // Evitamos pular "A A" pois pode ser uma placa AAA.
-        skipCount = 1;
-      }
+  tokens.forEach(token => {
+    if (PAT_VOICE_TOKEN_MAP[token]) {
+      convertido += PAT_VOICE_TOKEN_MAP[token];
+      return;
     }
 
-    convertido += char;
-    i += skipCount;
-  }
+    if (/^[a-z]$/.test(token)) {
+      convertido += token.toUpperCase();
+      return;
+    }
+
+    if (/^\d$/.test(token)) {
+      convertido += token;
+      return;
+    }
+
+    convertido += token.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  });
 
   const match = convertido.match(/[A-Z]{3}[0-9][A-Z0-9][0-9]{2}/);
   if (match) return match[0];
@@ -291,130 +334,12 @@ function pat_converterFalaEmPlaca(texto) {
   return fallback.length >= 7 ? fallback.slice(0, 7) : fallback;
 }
 
-function pat_validarFormatoPlaca(placa) {
-  return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(String(placa || '').toUpperCase());
-}
-
-function pat_normalizarPossivelPlaca(placa) {
-  return String(placa || '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '')
-    .slice(0, 7);
-}
-
-function pat_placaEhParecida(a, b) {
-  const left = pat_normalizarPossivelPlaca(a);
-  const right = pat_normalizarPossivelPlaca(b);
-  if (!left || !right || left.length !== 7 || right.length !== 7) return false;
-  if (left === right) return true;
-
-  let diff = 0;
-  for (let i = 0; i < 7; i++) {
-    if (left[i] !== right[i]) diff++;
-    if (diff > 1) return false;
-  }
-  return diff <= 1;
-}
-
-function pat_tokenParaChar(token) {
-  if (!token) return '';
-  if (PAT_VOICE_IGNORE_TOKENS.has(token)) return '';
-  if (PAT_VOICE_TOKEN_MAP[token]) return PAT_VOICE_TOKEN_MAP[token];
-  if (/^[a-z]$/.test(token)) return token.toUpperCase();
-  if (/^\d$/.test(token)) return token;
-  if (/^[a-z0-9]{1,7}$/i.test(token)) return token.toUpperCase();
-  if (/^\d{2,7}$/.test(token)) return token;
-  return '';
-}
-
-function pat_extrairPlacasDeLote(texto) {
-  const tokens = pat_normalizarTextoVoz(texto).split(' ').filter(Boolean);
-  const placas = [];
-
-  for (let i = 0; i < tokens.length; i++) {
-    if (tokens[i] !== 'placa') continue;
-
-    let valor = '';
-    for (let j = i + 1; j < tokens.length && valor.length < 7; j++) {
-      const token = tokens[j];
-      if (token === 'placa' || token === 'terminou') break;
-      
-      const char = pat_tokenParaChar(token);
-      if (!char) continue;
-
-      // Lógica para evitar duplicidade fonética (ex: "M de macaco")
-      let skipCount = 0;
-      if (j + 1 < tokens.length) {
-        const nextToken = tokens[j + 1];
-        if (PAT_VOICE_CONNECTORS.has(nextToken)) {
-          if (j + 2 < tokens.length && pat_tokenParaChar(tokens[j + 2]) === char) {
-            skipCount = 2;
-          }
-        } else if (pat_tokenParaChar(nextToken) === char && (token.length > 1 || nextToken.length > 1)) {
-          skipCount = 1;
-        }
-      }
-
-      valor += char;
-      j += skipCount;
-    }
-
-    const placa = valor.replace(/[^A-Z0-9]/g, '').slice(0, 7);
-    if (placa.length === 7 && pat_validarFormatoPlaca(placa)) placas.push(placa);
-  }
-
-  return placas;
-}
-
-function pat_renderizarLotePlacas() {
-  const box = document.getElementById('pat_lote_box');
-  const lista = document.getElementById('pat_lote_lista');
-  const status = document.getElementById('pat_lote_status');
-  if (!box || !lista || !status) return;
-
-  box.classList.toggle('hidden', PAT_LOTE_PLACAS.length === 0);
-  if (!PAT_LOTE_PLACAS.length) {
-    lista.innerHTML = '';
-    status.textContent = `Diga "placa" e os 7 caracteres. Diga "terminou" para encerrar. Maximo: ${PAT_LOTE_MAX_PLACAS} placas.`;
-    return;
-  }
-
-  status.textContent = `Lote capturado: ${PAT_LOTE_PLACAS.length}/${PAT_LOTE_MAX_PLACAS} placa(s).`;
-  lista.innerHTML = PAT_LOTE_PLACAS.map((placa) =>
-    `<span style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(37,99,235,.08);font-family:monospace;font-weight:700;">${pat_escapeHtml(placa)} <button type="button" class="btn btn-sm" style="padding:2px 8px;min-height:auto;" data-click="pat_removerPlacaLote('${placa}')">x</button></span>`
-  ).join('');
-}
-
-function pat_adicionarPlacaNoLote(placa) {
-  const valor = pat_normalizarPossivelPlaca(placa);
-  if (!pat_validarFormatoPlaca(valor)) return false;
-  if (PAT_LOTE_PLACAS.length >= PAT_LOTE_MAX_PLACAS) return false;
-  if (PAT_LOTE_SEEN.has(valor)) return false;
-  if (PAT_LOTE_PLACAS.some((item) => pat_placaEhParecida(item, valor))) return false;
-  PAT_LOTE_SEEN.add(valor);
-  PAT_LOTE_PLACAS.push(valor);
-  pat_renderizarLotePlacas();
-  return true;
-}
-
-function pat_limparLotePlacas() {
-  PAT_LOTE_PLACAS = [];
-  PAT_LOTE_SEEN = new Set();
-  pat_renderizarLotePlacas();
-}
-
-function pat_removerPlacaLote(placa) {
-  PAT_LOTE_PLACAS = PAT_LOTE_PLACAS.filter((item) => item !== placa);
-  PAT_LOTE_SEEN = new Set(PAT_LOTE_PLACAS);
-  pat_renderizarLotePlacas();
-}
-
 function pat_aplicarPlacaReconhecida(placa) {
   const placaEl = document.getElementById('pat_placa');
   if (!placaEl) return false;
 
   const valor = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
-  if (!pat_validarFormatoPlaca(valor)) {
+  if (valor.length < 7) {
     return false;
   }
 
@@ -423,6 +348,120 @@ function pat_aplicarPlacaReconhecida(placa) {
   pat_setModoPlaca('manual');
   if (navigator.vibrate) navigator.vibrate(80);
   return true;
+}
+
+function pat_obterPlacasLote() {
+  const textarea = document.getElementById('pat_lote_placas');
+  const bruto = textarea?.value || '';
+  const tokens = bruto
+    .split(/[\s,;]+/)
+    .map(item => item.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7))
+    .filter(Boolean);
+
+  const unicas = [];
+  tokens.forEach(placa => {
+    if (placa.length === 7 && !unicas.includes(placa)) {
+      unicas.push(placa);
+    }
+  });
+  return unicas.slice(0, PAT_LOTE_MAXIMO);
+}
+
+function pat_atualizarResumoLote() {
+  const resumo = document.getElementById('pat_lote_resumo');
+  const textarea = document.getElementById('pat_lote_placas');
+  if (!resumo || !textarea) return;
+
+  const placas = pat_obterPlacasLote();
+  resumo.textContent = `${placas.length}/${PAT_LOTE_MAXIMO} placas no lote.`;
+  const normalizado = placas.join('\n');
+  if (textarea.value.trim() !== normalizado.trim()) {
+    textarea.value = normalizado;
+  }
+}
+
+function pat_adicionarPlacaAtualAoLote() {
+  const placaInput = document.getElementById('pat_placa');
+  const textarea = document.getElementById('pat_lote_placas');
+  if (!placaInput || !textarea) return;
+
+  const placa = placaInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+  if (placa.length < 7) {
+    alert('Informe uma placa valida antes de incluir no lote.');
+    return;
+  }
+
+  const placas = pat_obterPlacasLote();
+  if (placas.includes(placa)) {
+    alert('Essa placa ja foi adicionada ao lote.');
+    return;
+  }
+  if (placas.length >= PAT_LOTE_MAXIMO) {
+    alert(`O lote permite no maximo ${PAT_LOTE_MAXIMO} veiculos.`);
+    return;
+  }
+
+  placas.push(placa);
+  textarea.value = placas.join('\n');
+  pat_atualizarResumoLote();
+  placaInput.value = '';
+  pat_formatarPlaca(placaInput);
+  placaInput.focus();
+}
+
+function pat_limparPlacasLote() {
+  const textarea = document.getElementById('pat_lote_placas');
+  if (!textarea) return;
+  textarea.value = '';
+  pat_atualizarResumoLote();
+}
+
+function pat_obterInfracaoAtual() {
+  const infracaoDataInput = document.getElementById('pat_infracao_data');
+  if (infracaoDataInput?.value) {
+    try {
+      return JSON.parse(infracaoDataInput.value);
+    } catch (err) {
+      alert('Dados da infracao invalidos. Selecione novamente.');
+      return null;
+    }
+  }
+
+  const mNome = document.getElementById('pat_manual_infra_nome')?.value.trim();
+  const mCod = document.getElementById('pat_manual_infra_codigo')?.value.trim();
+  if (mNome && mCod) {
+    return { nome: mNome, codigo: mCod, artigo: '' };
+  }
+
+  alert('Selecione a infracao.');
+  return null;
+}
+
+function pat_obterLocalAtual() {
+  const gpsBox = document.getElementById('pat_local_gps_box');
+  if (gpsBox && !gpsBox.classList.contains('hidden')) {
+    return document.getElementById('pat_local')?.value || 'GPS nao obtido';
+  }
+
+  const rod = document.getElementById('pat_manual_rodovia')?.value;
+  const km = document.getElementById('pat_manual_km')?.value;
+  return rod || km ? `${rod || 'Rodovia nao informada'}, KM ${km || 's/n'}` : 'Local nao informado';
+}
+
+function pat_obterBaseDataHora() {
+  const agora = new Date();
+  const dataTexto = document.getElementById('pat_data')?.value || agora.toLocaleDateString('pt-BR');
+  const horaTexto = document.getElementById('pat_hora')?.value || agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const [dia, mes, ano] = dataTexto.split('/').map(Number);
+  const [hora, minuto] = horaTexto.split(':').map(Number);
+  return {
+    dataTexto,
+    data: new Date(ano || agora.getFullYear(), (mes || (agora.getMonth() + 1)) - 1, dia || agora.getDate(), hora || 0, minuto || 0, 0)
+  };
+}
+
+function pat_formatarHoraComSegundos(data) {
+  return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function pat_iniciarVozPlaca() {
@@ -487,84 +526,6 @@ function pat_iniciarVozPlaca() {
   recognition.start();
 }
 
-function pat_pararReconhecimentoVoz() {
-  if (!PAT_SPEECH_RECOGNITION) return;
-  try {
-    PAT_SPEECH_RECOGNITION.stop();
-  } catch (error) {
-    console.warn('Falha ao interromper reconhecimento de voz:', error);
-  }
-  PAT_SPEECH_RECOGNITION = null;
-}
-
-function pat_iniciarVozLotePlacas() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert('Reconhecimento de voz nao suportado neste navegador.');
-    return;
-  }
-
-  pat_pararReconhecimentoVoz();
-  pat_limparLotePlacas();
-
-  const recognition = new SpeechRecognition();
-  PAT_SPEECH_RECOGNITION = recognition;
-
-  recognition.lang = 'pt-BR';
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 3;
-
-  pat_setBotaoLote('loading', '🎙️ Lote ouvindo...');
-  document.getElementById('pat_lote_box')?.classList.remove('hidden');
-
-  recognition.onresult = (event) => {
-    const resultados = [];
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      resultados.push(event.results[i][0].transcript || '');
-    }
-
-    const textoFalado = resultados.join(' ').trim();
-    const normalizado = pat_normalizarTextoVoz(textoFalado);
-    if (!normalizado) return;
-
-    pat_extrairPlacasDeLote(textoFalado).forEach((placa) => pat_adicionarPlacaNoLote(placa));
-
-    const status = document.getElementById('pat_lote_status');
-    if (status && !normalizado.includes('terminou')) {
-      status.textContent = `Ouvindo lote... ${PAT_LOTE_PLACAS.length}/${PAT_LOTE_MAX_PLACAS} placa(s) reconhecida(s).`;
-    }
-
-    if (PAT_LOTE_PLACAS.length >= PAT_LOTE_MAX_PLACAS) {
-      if (status) status.textContent = `Limite maximo atingido: ${PAT_LOTE_MAX_PLACAS} placas.`;
-      pat_pararReconhecimentoVoz();
-      pat_setBotaoLote('idle', '🎙️ Lote');
-      pat_renderizarLotePlacas();
-      return;
-    }
-
-    if (normalizado.includes('terminou')) {
-      pat_pararReconhecimentoVoz();
-      pat_setBotaoLote('idle', '🎙️ Lote');
-      pat_renderizarLotePlacas();
-    }
-  };
-
-  recognition.onerror = (event) => {
-    const erro = event?.error || 'desconhecido';
-    if (erro !== 'no-speech' && erro !== 'aborted') {
-      alert(`Erro no reconhecimento de voz: ${erro}`);
-    }
-  };
-
-  recognition.onend = () => {
-    PAT_SPEECH_RECOGNITION = null;
-    pat_setBotaoLote('idle', '🎙️ Lote');
-  };
-
-  recognition.start();
-}
-
 function pat_selectQuick(codigo) {
   const display = document.getElementById('pat_infracao_display');
   const dataInput = document.getElementById('pat_infracao_data');
@@ -615,99 +576,29 @@ function pat_selectQuick(codigo) {
   if (btn) btn.classList.add('active');
 }
 
-function pat_coletarContextoFormulario() {
-  const infracaoDataInput = document.getElementById('pat_infracao_data');
-  if (!infracaoDataInput) return null;
-
-  const agora = new Date();
-  const data = document.getElementById('pat_data')?.value || agora.toLocaleDateString('pt-BR');
-  const hora = document.getElementById('pat_hora')?.value || agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const obs = document.getElementById('pat_obs')?.value.trim() || '';
-
-  let local = '';
-  const gpsBox = document.getElementById('pat_local_gps_box');
-  if (gpsBox && !gpsBox.classList.contains('hidden')) {
-    local = pat_normalizarLocalGps(document.getElementById('pat_local')?.value);
-  } else {
-    const rod = document.getElementById('pat_manual_rodovia')?.value;
-    const kmInput = document.getElementById('pat_manual_km');
-    if (kmInput) core_formatarKM(kmInput);
-    const km = kmInput?.value || '0,000';
-    local = rod ? `${rod}, KM ${km}` : `KM ${km}`;
-  }
-
-  let infracaoObj = null;
-  if (infracaoDataInput.value) {
-    try {
-      infracaoObj = JSON.parse(infracaoDataInput.value);
-    } catch (err) {
-      alert('Dados da infracao invalidos. Selecione novamente.');
-      return null;
-    }
-  } else {
-    const mNome = document.getElementById('pat_manual_infra_nome')?.value.trim();
-    const mCod = document.getElementById('pat_manual_infra_codigo')?.value.trim();
-    if (mNome && mCod) {
-      infracaoObj = { nome: mNome, codigo: mCod, artigo: '' };
-    }
-  }
-
-  if (!infracaoObj) {
-    alert('Selecione a infracao.');
-    return null;
-  }
-
-  return { data, hora, local, obs, infracao: infracaoObj };
-}
-
-function pat_adicionarRegistro(placa, context) {
-  if (!pat_validarFormatoPlaca(placa) || !context) return false;
-
-  pat_getStore()?.add?.({
-    id: Date.now() + Math.floor(Math.random() * 1000),
-    placa,
-    data: context.data,
-    hora: context.hora,
-    local: context.local,
-    obs: context.obs,
-    infracao: context.infracao
-  });
-
-  return true;
-}
-
-function pat_salvarLotePlacas() {
-  if (!PAT_LOTE_PLACAS.length) {
-    alert('Nenhuma placa foi capturada no lote.');
-    return;
-  }
-
-  const context = pat_coletarContextoFormulario();
-  if (!context) return;
-
-  PAT_LOTE_PLACAS.forEach((placa) => pat_adicionarRegistro(placa, context));
-  pat_renderizarLista();
-  pat_setBoxVisible('pat_lista_card', true);
-  pat_setBoxVisible('pat_result_area', false);
-  pat_limparLotePlacas();
-  pat_resetFormulario();
-  if (navigator.vibrate) navigator.vibrate([100, 40, 100, 40, 100]);
-}
-
 function pat_salvarVeiculo() {
   const placaInput = document.getElementById('pat_placa');
   if (!placaInput) return;
-  const placa = placaInput.value.trim();
 
-  if (!pat_validarFormatoPlaca(placa)) {
+  const placa = placaInput.value.trim();
+  const baseDataHora = pat_obterBaseDataHora();
+  const data = baseDataHora.dataTexto;
+  const hora = document.getElementById('pat_hora')?.value || pat_formatarHoraComSegundos(baseDataHora.data);
+  const obs = document.getElementById('pat_obs')?.value.trim() || '';
+  const local = pat_obterLocalAtual();
+
+  if (!placa || placa.length < 7) {
     alert('Placa invalida.');
     return;
   }
 
-  const context = pat_coletarContextoFormulario();
-  if (!context) return;
+  const infracaoObj = pat_obterInfracaoAtual();
+  if (!infracaoObj) {
+    return;
+  }
 
-  pat_adicionarRegistro(placa, context);
+  PAT_VEICULOS.unshift({ id: Date.now(), placa, data, hora, local, obs, infracao: infracaoObj });
+  pat_salvarCache();
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', true);
   pat_setBoxVisible('pat_result_area', false);
@@ -715,34 +606,67 @@ function pat_salvarVeiculo() {
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 }
 
+function pat_salvarLote() {
+  const placas = pat_obterPlacasLote();
+  if (!placas.length) {
+    alert('Adicione pelo menos uma placa ao lote.');
+    return;
+  }
+  if (placas.length > PAT_LOTE_MAXIMO) {
+    alert(`O lote permite no maximo ${PAT_LOTE_MAXIMO} veiculos.`);
+    return;
+  }
+
+  const infracaoObj = pat_obterInfracaoAtual();
+  if (!infracaoObj) return;
+
+  const local = pat_obterLocalAtual();
+  const obs = document.getElementById('pat_obs')?.value.trim() || '';
+  const baseDataHora = pat_obterBaseDataHora();
+
+  placas.forEach((placa, index) => {
+    const dataRegistro = new Date(baseDataHora.data.getTime() + (index * 15000));
+    PAT_VEICULOS.unshift({
+      id: Date.now() + index,
+      placa,
+      data: baseDataHora.dataTexto,
+      hora: pat_formatarHoraComSegundos(dataRegistro),
+      local,
+      obs,
+      infracao: { ...infracaoObj }
+    });
+  });
+
+  pat_salvarCache();
+  pat_renderizarLista();
+  pat_setBoxVisible('pat_lista_card', true);
+  pat_setBoxVisible('pat_result_area', false);
+  pat_limparPlacasLote();
+  pat_resetFormulario();
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+}
+
 function pat_renderizarLista() {
   const container = document.getElementById('pat_lista_container');
   const card = document.getElementById('pat_lista_card');
   const totalEl = document.getElementById('pat_total_turno');
-  const veiculos = pat_getVeiculos();
   if (!container || !card) return;
 
-  if (veiculos.length === 0) {
+  if (PAT_VEICULOS.length === 0) {
     pat_setBoxVisible('pat_lista_card', false);
     if (totalEl) totalEl.textContent = 'Total de abordagens: 0';
     return;
   }
 
   pat_setBoxVisible('pat_lista_card', true);
-  if (totalEl) totalEl.textContent = `Total de abordagens: ${veiculos.length}`;
+  if (totalEl) totalEl.textContent = `Total de abordagens: ${PAT_VEICULOS.length}`;
   container.innerHTML = '';
 
-  veiculos.forEach((v, index) => {
-    const num = veiculos.length - index;
+  PAT_VEICULOS.forEach((v, index) => {
+    const num = PAT_VEICULOS.length - index;
     const item = document.createElement('div');
     item.className = 'pat-item';
     item.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px; border-radius:12px; background:rgba(255,255,255,0.05); margin-bottom:8px; border-left:4px solid var(--primary);';
-    const renderedHtml = pat_getRender()?.buildListItemHtml?.(v, index, veiculos.length, pat_escapeHtml);
-    if (renderedHtml) {
-      item.innerHTML = renderedHtml;
-      container.appendChild(item);
-      return;
-    }
     
     item.innerHTML = `
       <div style="background:var(--primary); color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; flex-shrink:0;">
@@ -764,24 +688,32 @@ function pat_renderizarLista() {
 
 function pat_removerVeiculo(index) {
   if (!confirm('Remover este registro?')) return;
-  pat_getStore()?.removeAt?.(index);
+  PAT_VEICULOS.splice(index, 1);
+  pat_salvarCache();
   pat_renderizarLista();
-  if (pat_getVeiculos().length === 0) {
+  if (PAT_VEICULOS.length === 0) {
     pat_setBoxVisible('pat_lista_card', false);
   }
 }
 
 function pat_limparTudo() {
   if (!confirm('Apagar todo o lote?')) return;
-  pat_getStore()?.clear?.();
+  PAT_VEICULOS = [];
+  pat_salvarCache();
   pat_renderizarLista();
   pat_setBoxVisible('pat_lista_card', false);
   pat_setBoxVisible('pat_result_area', false);
 }
 
 function pat_gerarRelatorio() {
-  const txt = pat_getReport()?.build?.(pat_getVeiculos()) || '';
-  if (!txt) return;
+  if (PAT_VEICULOS.length === 0) return;
+  let txt = `PATRULHAMENTO RODOVIARIO - PMRv SC\nData: ${PAT_VEICULOS[0].data}\n--------------------------\n\n`;
+  PAT_VEICULOS.forEach((v, i) => {
+    txt += `${i + 1}. [${v.placa}] as ${v.hora}\n${v.infracao.nome} (${v.infracao.codigo})\n${v.local}\n`;
+    if (v.obs) txt += `Obs: ${v.obs}\n`;
+    txt += '--------------------------\n\n';
+  });
+  txt += 'Gerado via PMRv Operacional';
 
   const resultText = document.getElementById('pat_result_text');
   const resultArea = document.getElementById('pat_result_area');
@@ -790,7 +722,7 @@ function pat_gerarRelatorio() {
 }
 
 function pat_encerrarPatrulhamento() {
-  if (pat_getVeiculos().length === 0) {
+  if (PAT_VEICULOS.length === 0) {
     alert('Nenhum registro foi adicionado ao patrulhamento.');
     return;
   }
@@ -811,7 +743,7 @@ function pat_baixarTxt() {
   const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const dataArquivo = pat_getReport()?.buildFileDate?.(pat_getVeiculos()) || new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+  const dataArquivo = (PAT_VEICULOS[0]?.data || new Date().toLocaleDateString('pt-BR')).replace(/\//g, '-');
 
   link.href = url;
   link.download = `Patrulhamento_PMrv_${dataArquivo}.txt`;
@@ -835,35 +767,22 @@ function pat_setModoLocal(modo) {
   document.getElementById('btn-pat-local-manual')?.classList.toggle('btn-primary', modo === 'manual');
 }
 
-function pat_normalizarLocalGps(valor) {
-  const texto = String(valor || '').trim();
-  if (!texto || texto === PAT_GPS_STATUS_LABEL) return 'GPS nao obtido';
-  return texto;
-}
-
 function pat_obterGPS() {
   const localInput = document.getElementById('pat_local');
   if (!localInput) return;
-  if (!navigator.geolocation) {
-    localInput.value = 'GPS nao suportado';
-    alert('GPS nao suportado neste dispositivo.');
-    return;
-  }
-
-  localInput.value = PAT_GPS_STATUS_LABEL;
+  localInput.value = 'Sintonizando...';
 
   navigator.geolocation.getCurrentPosition(
     async pos => {
       const { latitude, longitude } = pos.coords;
       if (typeof window.gps_descreverLocal === 'function') {
         const resultado = await window.gps_descreverLocal(latitude, longitude);
-        localInput.value = resultado.localPrincipal || resultado.descricao;
+        localInput.value = resultado.descricao;
       } else {
         localInput.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
       }
     },
     err => {
-      localInput.value = 'GPS nao obtido';
       alert('Erro GPS: ' + err.message);
     },
     { enableHighAccuracy: true, timeout: 5000 }
@@ -879,15 +798,15 @@ window.pat_limparTudo = pat_limparTudo;
 window.pat_gerarRelatorio = pat_gerarRelatorio;
 window.pat_encerrarPatrulhamento = pat_encerrarPatrulhamento;
 window.pat_baixarTxt = pat_baixarTxt;
+window.pat_setModoCadastro = pat_setModoCadastro;
 window.pat_setModoPlaca = pat_setModoPlaca;
 window.pat_setModoLocal = pat_setModoLocal;
+window.pat_atualizarResumoLote = pat_atualizarResumoLote;
+window.pat_adicionarPlacaAtualAoLote = pat_adicionarPlacaAtualAoLote;
+window.pat_limparPlacasLote = pat_limparPlacasLote;
+window.pat_salvarLote = pat_salvarLote;
 window.pat_obterGPS = pat_obterGPS;
 window.pat_simularOCR = pat_simularOCR;
 window.pat_iniciarVozPlaca = pat_iniciarVozPlaca;
-window.pat_iniciarVozLotePlacas = pat_iniciarVozLotePlacas;
-window.pat_salvarLotePlacas = pat_salvarLotePlacas;
-window.pat_limparLotePlacas = pat_limparLotePlacas;
-window.pat_removerPlacaLote = pat_removerPlacaLote;
 
 document.addEventListener('DOMContentLoaded', pat_init);
-

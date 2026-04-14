@@ -5,10 +5,7 @@ const root = process.cwd();
 const outDir = path.join(root, 'capacitor-www');
 
 const include = [
-  'Api.txt',
   'index.html',
-  'index-referencias-grande-florianopolis.html',
-  'index-referencias-grande-florianopolis-150m.html',
   'manifest.json',
   'service_worker.js',
   'icon-192.png',
@@ -24,14 +21,6 @@ const include = [
   'traseira.png',
   'lateral esquerda.png',
   'lateral direita.png',
-  'cfrontal.png',
-  'ctraseira.png',
-  'cesquerda.png',
-  'cdireita.png',
-  'ofrontal.png',
-  'otraseira.png',
-  'oesquerda.png',
-  'odireita.png',
   'splash.jpeg',
   'css',
   'data',
@@ -47,20 +36,8 @@ const include = [
   'prazos.png',
   'infrações.png',
   'pedestre.svg',
-  'waldermar viera SC-.svg',
-  'referencias-grande-florianopolis-150m.xlsx'
+  'waldermar viera SC-.svg'
 ];
-
-const optional = new Set([
-  'carro_frente_nobg.png',
-  'carro_tras_nobg.png',
-  'carro_esquerda_nobg.png',
-  'carro_direita_nobg.png',
-  'frente.png',
-  'traseira.png',
-  'lateral esquerda.png',
-  'lateral direita.png'
-]);
 
 function rmrf(target) {
   fs.rmSync(target, { recursive: true, force: true });
@@ -86,10 +63,6 @@ fs.mkdirSync(outDir, { recursive: true });
 for (const entry of include) {
   const src = path.join(root, entry);
   if (!fs.existsSync(src)) {
-    if (optional.has(entry)) {
-      console.warn(`Asset opcional ausente: ${entry}`);
-      continue;
-    }
     throw new Error(`Asset ausente: ${entry}`);
   }
   copyRecursive(src, path.join(outDir, entry));

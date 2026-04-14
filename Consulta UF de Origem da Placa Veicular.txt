@@ -1,0 +1,443 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descobrir UF</title>
+    <link rel="icon" href="favicon.ico">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Google Sans", 'Times New Roman';
+            display: flex;
+            justify-content: center;
+        }
+
+        form {
+            background-color: #fafcff;
+            margin: 25px;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 350px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 75%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            transition: border 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #003399;
+            outline: none;
+        }
+
+        input[type="submit"] {
+            width: 75%;
+            padding: 10px;
+            background-color: #003399;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #002266;
+        }
+
+        input[type="submit"]:disabled {
+            background-color: #7a8fbf;
+            color: #e6ecff;
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        li{
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            list-style: none;
+        }
+
+        .vermelho{
+            color: #cb0c0c;
+        }
+
+        #separador{
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+    <form id="formulario-consulta">
+        <label for="placa">Placa:</label>
+        <input type="text" id="placa" name="placa" maxlength="3">
+        <input type="submit" value="Consultar" id="consultar" disabled>
+        <ul id="ultimas-consultas"></ul>
+    </form> 
+
+
+    <script>
+
+        const sequencias = [
+            {"inicial": "AAA", "final": "BEZ", "estado": "Paraná"},
+            {"inicial": "BFA", "final": "GKI", "estado": "São Paulo"},
+            {"inicial": "GKJ", "final": "HOK", "estado": "Minas Gerais"},
+            {"inicial": "HOL", "final": "HQE", "estado": "Maranhão"},
+            {"inicial": "HQF", "final": "HTW", "estado": "Mato Grosso do Sul"},
+            {"inicial": "HTX", "final": "HZA", "estado": "Ceará"},
+            {"inicial": "HZB", "final": "IAP", "estado": "Sergipe"},
+            {"inicial": "IAQ", "final": "JDO", "estado": "Rio Grande do Sul"},
+            {"inicial": "JDP", "final": "JKR", "estado": "Distrito Federal"},
+            {"inicial": "JKS", "final": "JSZ", "estado": "Bahia"},
+            {"inicial": "JTA", "final": "JWE", "estado": "Pará"},
+            {"inicial": "JWF", "final": "JXY", "estado": "Amazonas"},
+            {"inicial": "JXZ", "final": "KAU", "estado": "Mato Grosso"},
+            {"inicial": "KAV", "final": "KFC", "estado": "Goiás"},
+            {"inicial": "KFD", "final": "KME", "estado": "Pernambuco"},
+            {"inicial": "KMF", "final": "LVE", "estado": "Rio de Janeiro"},
+            {"inicial": "LVF", "final": "LWQ", "estado": "Piauí"},
+            {"inicial": "LWR", "final": "MMM", "estado": "Santa Catarina"},
+            {"inicial": "MMN", "final": "MOW", "estado": "Paraíba"},
+            {"inicial": "MOX", "final": "MTZ", "estado": "Espírito Santo"},
+            {"inicial": "MUA", "final": "MVK", "estado": "Alagoas"},
+            {"inicial": "MVL", "final": "MXG", "estado": "Tocantins"},
+            {"inicial": "MXH", "final": "MZM", "estado": "Rio Grande do Norte"},
+            {"inicial": "MZN", "final": "NAG", "estado": "Acre"},
+            {"inicial": "NAH", "final": "NBA", "estado": "Roraima"},
+            {"inicial": "NBB", "final": "NEH", "estado": "Rondônia"},
+            {"inicial": "NEI", "final": "NFB", "estado": "Amapá"},
+            {"inicial": "NFC", "final": "NGZ", "estado": "Goiás"},
+            {"inicial": "NHA", "final": "NHT", "estado": "Maranhão"},
+            {"inicial": "NHU", "final": "NIX", "estado": "Piauí"},
+            {"inicial": "NIY", "final": "NJW", "estado": "Mato Grosso"},
+            {"inicial": "NJX", "final": "NLU", "estado": "Goiás"},
+            {"inicial": "NLV", "final": "NMO", "estado": "Alagoas"},
+            {"inicial": "NMP", "final": "NNI", "estado": "Maranhão"},
+            {"inicial": "NNJ", "final": "NOH", "estado": "Rio Grande do Norte"},
+            {"inicial": "NOI", "final": "NPB", "estado": "Amazonas"},
+            {"inicial": "NPC", "final": "NPQ", "estado": "Mato Grosso"},
+            {"inicial": "NPR", "final": "NQK", "estado": "Paraíba"},
+            {"inicial": "NQL", "final": "NRE", "estado": "Ceará"},
+            {"inicial": "NRF", "final": "NSD", "estado": "Mato Grosso do Sul"},
+            {"inicial": "NSE", "final": "NTC", "estado": "Pará"},
+            {"inicial": "NTD", "final": "NTW", "estado": "Bahia"},
+            {"inicial": "NTX", "final": "NUG", "estado": "Mato Grosso"},
+            {"inicial": "NUH", "final": "NUL", "estado": "Roraima"},
+            {"inicial": "NUM", "final": "NVF", "estado": "Ceará"},
+            {"inicial": "NVG", "final": "NVN", "estado": "Sergipe"},
+            {"inicial": "NVO", "final": "NWR", "estado": "Goiás"},
+            {"inicial": "NWS", "final": "NXQ", "estado": "Maranhão"},
+            {"inicial": "NXR", "final": "NXT", "estado": "Acre"},
+            {"inicial": "NXU", "final": "NXW", "estado": "Pernambuco"},
+            {"inicial": "NXX", "final": "NYG", "estado": "Minas Gerais"},
+            {"inicial": "NYH", "final": "NZZ", "estado": "Bahia"},
+            {"inicial": "OAA", "final": "OAO", "estado": "Amazonas"},
+            {"inicial": "OAP", "final": "OBS", "estado": "Mato Grosso"},
+            {"inicial": "OBT", "final": "OCA", "estado": "Pará"},
+            {"inicial": "OCB", "final": "OCU", "estado": "Ceará"},
+            {"inicial": "OCV", "final": "ODT", "estado": "Espírito Santo"},
+            {"inicial": "ODU", "final": "OEI", "estado": "Piauí"},
+            {"inicial": "OEJ", "final": "OES", "estado": "Sergipe"},
+            {"inicial": "OET", "final": "OFH", "estado": "Paraíba"},
+            {"inicial": "OFI", "final": "OFW", "estado": "Pará"},
+            {"inicial": "OFX", "final": "OGG", "estado": "Paraíba"},
+            {"inicial": "OGH", "final": "OHA", "estado": "Goiás"},
+            {"inicial": "OHB", "final": "OHK", "estado": "Alagoas"},
+            {"inicial": "OHL", "final": "OHW", "estado": "Rondônia"},
+            {"inicial": "OHX", "final": "OIQ", "estado": "Ceará"},
+            {"inicial": "OIR", "final": "OJQ", "estado": "Maranhão"},
+            {"inicial": "OJR", "final": "OKC", "estado": "Rio Grande do Norte"},
+            {"inicial": "OKD", "final": "OKH", "estado": "Santa Catarina"},
+            {"inicial": "OKI", "final": "OLG", "estado": "Bahia"},
+            {"inicial": "OLH", "final": "OLN", "estado": "Tocantins"},
+            {"inicial": "OLO", "final": "OMH", "estado": "Minas Gerais"},
+            {"inicial": "OMI", "final": "OOF", "estado": "Goiás"},
+            {"inicial": "OOG", "final": "OOU", "estado": "Mato Grosso do Sul"},
+            {"inicial": "OOV", "final": "ORC", "estado": "Minas Gerais"},
+            {"inicial": "ORD", "final": "ORM", "estado": "Alagoas"},
+            {"inicial": "ORN", "final": "OSV", "estado": "Ceará"},
+            {"inicial": "OSW", "final": "OTZ", "estado": "Pará"},
+            {"inicial": "OUA", "final": "OUE", "estado": "Piauí"},
+            {"inicial": "OUF", "final": "OVD", "estado": "Bahia"},
+            {"inicial": "OVE", "final": "OVF", "estado": "Espírito Santo"},
+            {"inicial": "OVH", "final": "OVL", "estado": "Espírito Santo"},
+            {"inicial": "OVM", "final": "OVV", "estado": "Distrito Federal"},
+            {"inicial": "OVW", "final": "OVY", "estado": "Piauí"},
+            {"inicial": "OVZ", "final": "OWG", "estado": "Rio Grande do Norte"},
+            {"inicial": "OWH", "final": "OXK", "estado": "Minas Gerais"},
+            {"inicial": "OXQ", "final": "OXZ", "estado": "Maranhão"},
+            {"inicial": "OYA", "final": "OYC", "estado": "Tocantins"},
+            {"inicial": "OYD", "final": "OYK", "estado": "Espírito Santo"},
+            {"inicial": "OYL", "final": "OYZ", "estado": "Pernambuco"},
+            {"inicial": "OZC", "final": "OZV", "estado": "Bahia"},
+            {"inicial": "OZW", "final": "PBZ", "estado": "Distrito Federal"},
+            {"inicial": "PCA", "final": "PED", "estado": "Pernambuco"},
+            {"inicial": "PEE", "final": "PFQ", "estado": "Pernambuco"},
+            {"inicial": "PFR", "final": "PGK", "estado": "Pernambuco"},
+            {"inicial": "PGL", "final": "PGU", "estado": "Pernambuco"},
+            {"inicial": "PGV", "final": "PGZ", "estado": "Pernambuco"},
+            {"inicial": "PHA", "final": "PHZ", "estado": "Amazonas"},
+            {"inicial": "PIA", "final": "PIZ", "estado": "Piauí"},
+            {"inicial": "PJA", "final": "PLZ", "estado": "Bahia"},
+            {"inicial": "PMA", "final": "POZ", "estado": "Ceará"},
+            {"inicial": "PPA", "final": "PPZ", "estado": "Espírito Santo"},
+            {"inicial": "PQA", "final": "PRZ", "estado": "Goiás"},
+            {"inicial": "PSA", "final": "PTZ", "estado": "Maranhão"},
+            {"inicial": "PUA", "final": "PZZ", "estado": "Minas Gerais"},
+            {"inicial": "QAA", "final": "QAZ", "estado": "Mato Grosso do Sul"},
+            {"inicial": "QBA", "final": "QCZ", "estado": "Mato Grosso"},
+            {"inicial": "QDA", "final": "QEZ", "estado": "Pará"},
+            {"inicial": "QFA", "final": "QFZ", "estado": "Paraíba"},
+            {"inicial": "QGA", "final": "QGZ", "estado": "Rio Grande do Norte"},
+            {"inicial": "QHA", "final": "QJZ", "estado": "Santa Catarina"},
+            {"inicial": "QKA", "final": "QKM", "estado": "Tocantins"},
+            {"inicial": "QKN", "final": "QKZ", "estado": "Sergipe"},
+            {"inicial": "QLA", "final": "QLM", "estado": "Alagoas"},
+            {"inicial": "QLN", "final": "QLT", "estado": "Amapá"},
+            {"inicial": "QLU", "final": "QLZ", "estado": "Acre"},
+            {"inicial": "QMA", "final": "QMP", "estado": "Sergipe"},
+            {"inicial": "QMQ", "final": "QQZ", "estado": "Minas Gerais"},
+            {"inicial": "QRB", "final": "QRM", "estado": "Espírito Santo"},
+            {"inicial": "QRN", "final": "QRZ", "estado": "Piauí"},
+            {"inicial": "QSA", "final": "QSM", "estado": "Paraíba"},
+            {"inicial": "QSN", "final": "QSZ", "estado": "São Paulo"},
+            {"inicial": "QTA", "final": "QTJ", "estado": "Rondônia"},
+            {"inicial": "QTK", "final": "QTM", "estado": "Santa Catarina"},
+            {"inicial": "QTN", "final": "QTS", "estado": "Goiás"},
+            {"inicial": "QTU", "final": "QTZ", "estado": "Bahia"},
+            {"inicial": "QUA", "final": "QUZ", "estado": "Minas Gerais"},
+            {"inicial": "QVA", "final": "QVZ", "estado": "Pará"},
+            {"inicial": "QWA", "final": "QWF", "estado": "Tocantins"},
+            {"inicial": "QWG", "final": "QWL", "estado": "Alagoas"},
+            {"inicial": "QWM", "final": "QWQ", "estado": "Acre"},
+            {"inicial": "QWR", "final": "QXZ", "estado": "Minas Gerais"},
+            {"inicial": "QYA", "final": "QYZ", "estado": "Pernambuco"},
+            {"inicial": "QZA", "final": "QZZ", "estado": "Amazonas"},
+            {"inicial": "RAA", "final": "RAJ", "estado": "Santa Catarina"},
+            {"inicial": "RAK", "final": "RAZ", "estado": "Mato Grosso"},
+            {"inicial": "RBA", "final": "RBJ", "estado": "Espírito Santo"},
+            {"inicial": "RBK", "final": "RCN", "estado": "Goiás"},
+            {"inicial": "RCO", "final": "RDR", "estado": "Bahia"},
+            {"inicial": "RDS", "final": "REB", "estado": "Santa Catarina"},
+            {"inicial": "REC", "final": "REV", "estado": "Distrito Federal"},
+            {"inicial": "REW", "final": "REZ", "estado": "Mato Grosso do Sul"},
+            {"inicial": "RFA", "final": "RGD", "estado": "Minas Gerais"},
+            {"inicial": "RGE", "final": "RGM", "estado": "Rio Grande do Norte"},
+            {"inicial": "RGO", "final": "RGU", "estado": "Alagoas"},
+            {"inicial": "RGV", "final": "RGZ", "estado": "Alagoas"},
+            {"inicial": "RHA", "final": "RHZ", "estado": "Paraná"},
+            {"inicial": "RIA", "final": "RIL", "estado": "Ceará"},
+            {"inicial": "RIM", "final": "RIN", "estado": "Tocantins"},
+            {"inicial": "RIP", "final": "RKV", "estado": "Rio de Janeiro"},
+            {"inicial": "RKW", "final": "RLP", "estado": "Santa Catarina"},
+            {"inicial": "RLQ", "final": "RLZ", "estado": "Paraíba"},
+            {"inicial": "RMA", "final": "RMC", "estado": "Tocantins"},
+            {"inicial": "RMD", "final": "RNZ", "estado": "Minas Gerais"},
+            {"inicial": "ROA", "final": "ROZ", "estado": "Maranhão"},
+            {"inicial": "RPA", "final": "RPZ", "estado": "Bahia"},
+            {"inicial": "RQA", "final": "RQL", "estado": "Rio Grande do Norte"},
+            {"inicial": "RQM", "final": "RQV", "estado": "Espírito Santo"},
+            {"inicial": "RQW", "final": "RRH", "estado": "Sergipe"},
+            {"inicial": "RRI", "final": "RRZ", "estado": "Mato Grosso"},
+            {"inicial": "RSA", "final": "RSF", "estado": "Tocantins"},
+            {"inicial": "RSG", "final": "RST", "estado": "Piauí"},
+            {"inicial": "RSU", "final": "RSZ", "estado": "Rondônia"},
+            {"inicial": "RTA", "final": "RVZ", "estado": "Minas Gerais"},
+            {"inicial": "RWA", "final": "RWJ", "estado": "Mato Grosso do Sul"},
+            {"inicial": "RWK", "final": "RXJ", "estado": "Pará"},
+            {"inicial": "RXK", "final": "RYZ", "estado": "Santa Catarina"},
+            {"inicial": "RZA", "final": "RZD", "estado": "Roraima"},
+            {"inicial": "RZE", "final": "RZZ", "estado": "Pernambuco"},
+            {"inicial": "SAA", "final": "SAJ", "estado": "Alagoas"},
+            {"inicial": "SAK", "final": "SAM", "estado": "Amapá"},
+            {"inicial": "SAN", "final": "SBV", "estado": "Ceará"},
+            {"inicial": "SBW", "final": "SDO", "estado": "Goiás"},
+            {"inicial": "SDP", "final": "SFO", "estado": "Paraná"},
+            {"inicial": "SFP", "final": "SGM", "estado": "Espírito Santo"},
+            {"inicial": "SGN", "final": "SGZ", "estado": "Distrito Federal"},
+            {"inicial": "SHB", "final": "SJI", "estado": "Minas Gerais"},
+            {"inicial": "SJJ", "final": "SKT", "estado": "Bahia"},
+            {"inicial": "SKU", "final": "SLF", "estado": "Paraíba"},
+            {"inicial": "SLG", "final": "SLL", "estado": "Rondônia"},
+            {"inicial": "SLM", "final": "SLV", "estado": "Piauí"},
+            {"inicial": "SLW", "final": "SML", "estado": "Mato Grosso do Sul"},
+            {"inicial": "SMM", "final": "SNJ", "estado": "Maranhão"},
+            {"inicial": "SNK", "final": "SPB", "estado": "Pernambuco"},
+            {"inicial": "SPC", "final": "SQP", "estado": "Mato Grosso"},
+            {"inicial": "SQQ", "final": "SQU", "estado": "Acre"},
+            {"inicial": "SQV", "final": "SSE", "estado": "Rio de Janeiro"},
+            {"inicial": "SSF", "final": "SSQ", "estado": "Distrito Federal"},
+            {"inicial": "SSR", "final": "SWZ", "estado": "São Paulo"},
+            {"inicial": "SXA", "final": "SXZ", "estado": "Santa Catarina"},
+            {"inicial": "SYA", "final": "SYZ", "estado": "Minas Gerais"},
+            {"inicial": "SZA", "final": "SZZ", "estado": "Pará"},
+            {"inicial": "TAA", "final": "TAH", "estado": "Amazonas"},
+            {"inicial": "TAI", "final": "TBZ", "estado": "Paraná"},
+            {"inicial": "TCA", "final": "TEZ", "estado": "Minas Gerais"},
+            {"inicial": "TFA", "final": "TGN", "estado": "Goiás"},
+            {"inicial": "TGO", "final": "TGQ", "estado": "Amapá"},
+            {"inicial": "TGR", "final": "THH", "estado": "Bahia"},
+            {"inicial": "THI", "final": "THM", "estado": "Rondônia"},
+            {"inicial": "THN", "final": "TIN", "estado": "Ceará"},
+            {"inicial": "TIO", "final": "TMJ", "estado": "São Paulo"},
+            {"inicial": "TMK", "final": "TNG", "estado": "Bahia"},
+            {"inicial": "TNH", "final": "TNT", "estado": "Alagoas"},
+            {"inicial": "TNU", "final": "TOD", "estado": "Sergipe"},
+            {"inicial": "TOE", "final": "TOS", "estado": "Espírito Santo"},
+            {"inicial": "TOT", "final": "TPH", "estado": "Paraíba"},
+            {"inicial": "TPI", "final": "TQE", "estado": "Santa Catarina"},
+            {"inicial": "TQO", "final": "TRW", "estado": "Rio Grande do Sul"},
+            {"inicial": "TRX", "final": "TSO", "estado": "Amazonas"},
+            {"inicial": "TSP", "final": "TSZ", "estado": "Rio Grande do Norte"},
+            {"inicial": "TTA", "final": "TUX", "estado": "Rio de Janeiro"},
+            {"inicial": "TUY", "final": "TUZ", "estado": "Distrito Federal"},
+            {"inicial": "TVA", "final": "TVD", "estado": "Tocantins"},
+            {"inicial": "TVL", "final": "TWX", "estado": "Pará"},
+            {"inicial": "TWY", "final": "UAH", "estado": "Minas Gerais"},
+            {"inicial": "UAJ", "final": "UAR", "estado": "Rondônia"},
+            {"inicial": "UAS", "final": "UCZ", "estado": "Paraná"},
+            {"inicial": "UDA", "final": "UGV", "estado": "São Paulo"},
+            {"inicial": "UGW", "final": "UHI", "estado": "Mato Grosso do Sul"},
+            {"inicial": "UHJ", "final": "UII", "estado": "Pernambuco"},
+            {"inicial": "UIV", "final": "UJL", "estado": "Distrito Federal"},
+            {"inicial": "UJM", "final": "UKE", "estado": "Maranhão"},
+            {"inicial": "UKF", "final": "UKN", "estado": "Piauí"},
+            {"inicial": "UKO", "final": "UKQ", "estado": "Amapá"},
+            {"inicial": "OVG", "final": "OVG", "estado": "Acre"},
+            {"inicial": "OXL", "final": "OXL", "estado": "Rondônia"},
+            {"inicial": "OXM", "final": "OXM", "estado": "Amazonas"},
+            {"inicial": "OXN", "final": "OXN", "estado": "Alagoas"},
+            {"inicial": "OXO", "final": "OXO", "estado": "Paraíba"},
+            {"inicial": "OXP", "final": "OXP", "estado": "Acre"},
+            {"inicial": "OZA", "final": "OZA", "estado": "Ceará"},
+            {"inicial": "OZB", "final": "OZB", "estado": "Sergipe"},
+            {"inicial": "QRA", "final": "QRA", "estado": "Rondônia"},
+            {"inicial": "QTT", "final": "QTT", "estado": "Alagoas"},
+            {"inicial": "RGN", "final": "RGN", "estado": "Rio Grande do Norte"},
+            {"inicial": "RIO", "final": "RIO", "estado": "Rio de Janeiro"},
+            {"inicial": "SHA", "final": "SHA", "estado": "Acre"},
+            {"inicial": "TVK", "final": "TVK", "estado": "Distrito Federal"},
+            {"inicial": "UAI", "final": "UAI", "estado": "Minas Gerais"}
+            ]
+        const textoNaoUtilizada = "Não utilizada"
+        let ultimasConsultas = [];
+
+        const input_placa = document.getElementById("placa");
+
+        function adicionarResultado(placa, resultado){
+            const ul_ultimas_consultas = document.getElementById("ultimas-consultas");
+            ul_ultimas_consultas.innerHTML = "";
+
+            ultimasConsultas.unshift({placa, resultado});
+
+            if (ultimasConsultas.length > 6){
+                ultimasConsultas.pop()
+            }
+            
+            ultimasConsultas.forEach((item, index) => {
+                const novoResultado = document.createElement("li");
+                novoResultado.innerText = item.placa + ": " + item.resultado;
+
+                if (item.resultado == textoNaoUtilizada){
+                    novoResultado.classList.add("vermelho");
+                }
+
+                if ((index == 1) & ultimasConsultas.length > 1){
+
+                    ul_ultimas_consultas.appendChild(document.createElement("br"));
+
+                    const li_separador = document.createElement('li');
+                    li_separador.setAttribute("id", "separador");
+                    li_separador.innerText = "Últimas Consultas:";
+
+                    ul_ultimas_consultas.appendChild(li_separador);
+                    ul_ultimas_consultas.appendChild(document.createElement("br"));
+                }
+
+                ul_ultimas_consultas.appendChild(novoResultado);
+            });
+        }
+
+        
+
+        function gerarExemploAleatorio(){
+            const exemplo = String.fromCharCode(65 + Math.floor(Math.random() * 21)) + 
+                            String.fromCharCode(65 + Math.floor(Math.random() * 26)) + 
+                            String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            input_placa.setAttribute("placeholder", "Ex.: " + exemplo);
+        }
+
+        function consultar(event){
+
+            event.preventDefault();
+
+            let sequenciaNaoUtilizada = true;
+
+            const placa = input_placa.value;
+            
+            for(let item = 0; item < sequencias.length; item++){
+                if ((placa >= sequencias[item].inicial) & (placa <= sequencias[item].final)){
+                    adicionarResultado(placa, sequencias[item].estado);
+                    sequenciaNaoUtilizada = false;
+                    break;
+                }
+            }
+
+            if (sequenciaNaoUtilizada){
+                adicionarResultado(placa, "Não utilizada");
+            }
+
+            input_placa.value = "";
+            desabilitarSubmit();
+            gerarExemploAleatorio();
+        }
+
+        function formatarLetras(event){
+            event.target.value = event.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+            desabilitarSubmit();
+        }
+
+        function desabilitarSubmit(){
+            const botao_consultar = document.getElementById("consultar");
+
+            if (input_placa.value.length == 3){
+                botao_consultar.removeAttribute("disabled");
+            }else{
+                botao_consultar.setAttribute("disabled", true);
+            }
+        }
+
+        gerarExemploAleatorio();
+        input_placa.addEventListener("input", formatarLetras);
+        document.getElementById("formulario-consulta").addEventListener("submit", consultar);
+    </script>
+</body>
+</html>
